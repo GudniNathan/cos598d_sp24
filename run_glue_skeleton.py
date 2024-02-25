@@ -140,7 +140,7 @@ def train(args, train_dataset, model, tokenizer):
             # Record the loss values of the first five minibatches 
             # by printing the loss value after every iteration
             if step <= 5:
-                print("Loss value at iteration", step, ":", loss.item())
+                logger.info("Loss value at iteration", step, ":", loss.item())
 
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:

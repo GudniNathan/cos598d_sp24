@@ -141,6 +141,7 @@ def train(args, train_dataset, model, tokenizer):
                 ##################################################
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
+            print("Gradients computed.")
             # Deal with distributed training
             torch.distributed.barrier()
             
