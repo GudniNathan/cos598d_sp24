@@ -13,7 +13,7 @@ python3 run_glue_skeleton.py \
   --max_seq_length 128 \
   --per_gpu_train_batch_size 64 \
   --learning_rate 2e-5 \
-  --num_train_epochs 3 \
+  --num_train_epochs 10 \
   --output_dir /tmp/$TASK_NAME/ \
   --overwrite_output_dir \
   --local_rank $LOCAL_RANK \
