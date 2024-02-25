@@ -15,5 +15,5 @@ python3 run_glue_skeleton.py \
   --output_dir /tmp/$TASK_NAME/ \
   --overwrite_output_dir \
   --local_rank $LOCAL_RANK \
-  --master-addr "10.10.1.2" \
-  --master-port 8888
+  --master_addr "10.10.1.2" \
+  --master_port 8888
