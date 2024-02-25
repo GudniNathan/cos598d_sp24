@@ -432,7 +432,7 @@ def main():
         config=config
     )
     ddp_model = DDP(model)
-    logger.info("Model loaded.")
+    print("Model loaded.")
     ##################################################
 
     if args.local_rank == 0:
