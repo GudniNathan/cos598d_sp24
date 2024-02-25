@@ -120,7 +120,7 @@ def train(args, train_dataset, model, tokenizer):
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
             # Want to report the average time per iteration, discarding the first iteration
-            if step == 1:
+            if global_step == 1:
                 timer_start = time.time()
 
             model.train()
