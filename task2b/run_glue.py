@@ -168,13 +168,17 @@ def train(args, train_dataset, model, tokenizer):
                 
             # torch.distributed.barrier() # Wait for all processes to finish updating their gradients                 
 
-            torch.distributed.barrier() # Wait for all processes to finish updating their gradients
-
+            # torch.distributed.barrier() # Wait for all processes to finish updating their gradients
+            handles = []
             for i, param in enumerate(model.parameters()):
-                torch.distributed.all_reduce(param.grad, op=torch.distributed.ReduceOp.SUM)
-                param.grad /= args.world_size
+                handle = torch.distributed.all_reduce(param.grad, op=torch.distributed.ReduceOp.SUM, async_op=True)
+                handles.append(handle)
+            
+            for handle in handles:
+                handle.wait()
+                param.grad /= args.world_size # Average the gradients               
                 
-            torch.distributed.barrier() # Wait for all processes to finish updating their gradients
+            # torch.distributed.barrier() # Wait for all processes to finish updating their gradients
 
 
             tr_loss += loss.item()
