@@ -186,7 +186,7 @@ def train(args, train_dataset, model, tokenizer):
             # by printing the loss value after every iteration
             if global_step <= 5:
                 logger.info("Loss value at iteration %d: %f", step, tr_loss)
-            if 0 < global_step < 40:
+            if 1 < global_step <= 40:
                 elapsed_time = time.time() - timer_start
                 average_elapsed_time = elapsed_time / global_step
                 print("Average elapsed time per iteration:", average_elapsed_time)
