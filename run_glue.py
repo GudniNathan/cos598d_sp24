@@ -23,6 +23,8 @@ import logging
 import os
 import random
 
+import time
+
 import numpy as np
 import torch
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
@@ -113,6 +115,9 @@ def train(args, train_dataset, model, tokenizer):
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
+            # Take the time at the beginning of the iteration
+            iteration_time = time.time()
+            
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids':      batch[0],
@@ -141,6 +146,12 @@ def train(args, train_dataset, model, tokenizer):
             # by printing the loss value after every iteration
             if step <= 5:
                 logger.info("Loss value at iteration at iteration %d: %f", step, loss.item())
+            
+            if 1 < global_step <= 40:
+                total_iteration_time += time.time() - iteration_time
+                average_elapsed_time = total_iteration_time / (global_step - 1)
+                print(" \tAverage elapsed time per iteration:", f"{average_elapsed_time:.4f}", "at iteration ", global_step)
+
 
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
