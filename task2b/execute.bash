@@ -14,9 +14,11 @@ python3 run_glue.py \
   --max_seq_length 128 \
   --per_gpu_train_batch_size 64 \
   --learning_rate 2e-5 \
+  --weight_decay 0.01 \
   --num_train_epochs 10 \
   --output_dir /tmp/$TASK_NAME/ \
   --overwrite_output_dir \
   --local_rank $LOCAL_RANK \
   --master_addr "10.10.1.2" \
-  --master_port 8888
+  --master_port 8888 \
+  --world_size $WORLD_SIZE
