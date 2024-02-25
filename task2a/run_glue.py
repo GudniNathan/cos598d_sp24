@@ -109,7 +109,7 @@ def train(args, train_dataset, model, tokenizer):
 
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
-    timer_start = None # initialize timer variable
+    total_iteration_time = 0
     model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
@@ -120,8 +120,7 @@ def train(args, train_dataset, model, tokenizer):
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
             # Want to report the average time per iteration, discarding the first iteration
-            if global_step == 1:
-                timer_start = time.time()
+            iteration_time = time.time()
 
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
@@ -187,8 +186,8 @@ def train(args, train_dataset, model, tokenizer):
             if global_step <= 5:
                 logger.info("Loss value at iteration %d: %f", global_step, tr_loss)
             if 1 < global_step <= 40:
-                elapsed_time = time.time() - timer_start
-                average_elapsed_time = elapsed_time / global_step
+                total_iteration_time += time.time() - iteration_time
+                average_elapsed_time = total_iteration_time / (global_step - 1)
                 print("Average elapsed time per iteration:", average_elapsed_time)
 
             if args.max_steps > 0 and global_step > args.max_steps:
