@@ -145,36 +145,29 @@ def train(args, train_dataset, model, tokenizer):
                 ##################################################
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
-            # # Deal with distributed training
-            # torch.distributed.barrier()
+            # Deal with distributed training
+            torch.distributed.barrier()
             
-            # # Gather gradients from all replicas
-            # for i, param in enumerate(model.parameters()):
-            #     if torch.distributed.get_rank() == 0:
-            #         grads = [torch.zeros_like(param.grad) for _ in range(torch.distributed.get_world_size())]
-            #         torch.distributed.gather(param.grad, gather_list=grads)
-            #     else:
-            #         torch.distributed.gather(param.grad) # Send gradients to the root process
-                
-            #     # Average the gradients
-            #     if torch.distributed.get_rank() == 0:
-            #         avg_grad = torch.stack(grads).mean(dim=0)
-            #         # param.grad = avg_grad
-            #         scatter_list = [avg_grad for _ in range(args.world_size)]
-            #         torch.distributed.scatter(param.grad, scatter_list=scatter_list)
-            #     else:
-            #         # Scatter the gradients back to all processes
-            #         torch.distributed.scatter(param.grad)
-                
-            # torch.distributed.barrier() # Wait for all processes to finish updating their gradients                 
-
-            torch.distributed.barrier() # Wait for all processes to finish updating their gradients
-
+            # Gather gradients from all replicas
             for i, param in enumerate(model.parameters()):
-                torch.distributed.all_reduce(param.grad, op=torch.distributed.ReduceOp.SUM)
-                param.grad /= args.world_size
+                if torch.distributed.get_rank() == 0:
+                    grads = [torch.zeros_like(param.grad) for _ in range(torch.distributed.get_world_size())]
+                    torch.distributed.gather(param.grad, gather_list=grads)
+                else:
+                    torch.distributed.gather(param.grad) # Send gradients to the root process
                 
-            torch.distributed.barrier() # Wait for all processes to finish updating their gradients
+                # Average the gradients
+                if torch.distributed.get_rank() == 0:
+                    avg_grad = torch.stack(grads).mean(dim=0)
+                    # param.grad = avg_grad
+                    scatter_list = [avg_grad for _ in range(args.world_size)]
+                    torch.distributed.scatter(param.grad, scatter_list=scatter_list)
+                else:
+                    # Scatter the gradients back to all processes
+                    torch.distributed.scatter(param.grad)
+                
+            torch.distributed.barrier() # Wait for all processes to finish updating their gradients                 
+
 
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
