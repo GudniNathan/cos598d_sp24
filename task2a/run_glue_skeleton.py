@@ -388,6 +388,7 @@ def main():
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
     os.environ['MASTER_ADDR'] = args.master_addr
     os.environ['MASTER_PORT'] = args.master_port
+    print("Initializing distributed training...")
     torch.distributed.init_process_group(rank=args.local_rank, world_size=WORLD_SIZE, backend="gloo")
 
     print("Distributed training with rank", args.local_rank, "and world size", WORLD_SIZE)
