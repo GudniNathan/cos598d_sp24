@@ -188,7 +188,7 @@ def train(args, train_dataset, model, tokenizer):
             if 1 < global_step <= 40:
                 total_iteration_time += time.time() - iteration_time
                 average_elapsed_time = total_iteration_time / (global_step - 1)
-                print(" \tAverage elapsed time per iteration:", average_elapsed_time, "at iteration", global_step)
+                print(" \tAverage elapsed time per iteration:", f"{average_elapsed_time:.4f}, "at iteration", global_step)
 
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
