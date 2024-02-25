@@ -112,7 +112,8 @@ def train(args, train_dataset, model, tokenizer):
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
     total_iteration_time = 0
-    model.zero_grad()
+    ddp_model = DDP(model)
+    ddp_model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
     for epoch in train_iterator:
@@ -124,13 +125,13 @@ def train(args, train_dataset, model, tokenizer):
             # Want to report the average time per iteration, discarding the first iteration
             iteration_time = time.time()
 
-            model.train()
+            ddp_model.train()
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids':      batch[0],
                       'attention_mask': batch[1],
                       'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
                       'labels':         batch[3]}
-            outputs = model(**inputs)
+            outputs = ddp_model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in pytorch-transformers (see doc)
 
             if args.gradient_accumulation_steps > 1:
@@ -145,7 +146,7 @@ def train(args, train_dataset, model, tokenizer):
                 # TODO(cos598d): perform backward pass here
                 loss.backward()
                 ##################################################
-                torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                torch.nn.utils.clip_grad_norm_(ddp_model.parameters(), args.max_grad_norm)
 
 
             tr_loss += loss.item()
@@ -157,7 +158,7 @@ def train(args, train_dataset, model, tokenizer):
                 optimizer.step()
                 # logger.info("Optimization step done.")
                 ##################################################
-                model.zero_grad()
+                ddp_model.zero_grad()
                 global_step += 1
             
             # Record the loss values of the first five minibatches 
@@ -178,7 +179,7 @@ def train(args, train_dataset, model, tokenizer):
                 
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
-        evaluate(args, model, tokenizer)
+        evaluate(args, ddp_model, tokenizer)
         ##################################################
 
     return global_step, tr_loss / global_step
@@ -431,7 +432,6 @@ def main():
         # from_tf=bool('.ckpt' in args.model_name_or_path),
         config=config
     )
-    ddp_model = DDP(model)
     print("Model loaded.")
     ##################################################
 
@@ -441,7 +441,7 @@ def main():
 
     # torch.distributed.init_process_group(backend='nccl')
 
-    ddp_model.to(args.device)
+    model.to(args.device)
 
     logger.info("Training/evaluation parameters %s", args)
 
@@ -449,11 +449,11 @@ def main():
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
-        global_step, tr_loss = train(args, train_dataset, ddp_model, tokenizer)
+        global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     # Evaluation
-    evaluate(args, ddp_model, tokenizer, prefix="")
+    evaluate(args, model, tokenizer, prefix="")
     
     # Clean up process group
     torch.distributed.destroy_process_group()
