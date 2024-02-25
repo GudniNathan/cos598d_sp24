@@ -153,8 +153,9 @@ def train(args, train_dataset, model, tokenizer):
                 # Average the gradients
                 if torch.distributed.get_rank() == 0:
                     avg_grad = torch.stack(grads).mean(dim=0)
-                    param.grad = avg_grad
-                    torch.distributed.scatter(param.grad, scatter_list=avg_grad)
+                    # param.grad = avg_grad
+                    scatter_list = [avg_grad for _ in range(WORLD_SIZE)]
+                    torch.distributed.scatter(param.grad, scatter_list=scatter_list)
                 else:
                     # Scatter the gradients back to all processes
                     torch.distributed.scatter(param.grad)
