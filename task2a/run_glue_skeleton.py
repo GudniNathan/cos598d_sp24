@@ -57,6 +57,8 @@ MODEL_CLASSES = {
     'roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
 }
 
+WORLD_SIZE = 4
+
 
 def set_seed(args):
     random.seed(args.seed)
@@ -71,7 +73,7 @@ def train(args, train_dataset, model, tokenizer):
     """ Train the model """
 
     args.train_batch_size = args.per_gpu_train_batch_size
-    train_sampler = RandomSampler(train_dataset)
+    train_sampler = DistributedSampler(train_dataset, num_replicas=WORLD_SIZE, rank=args.local_rank)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
 
     if args.max_steps > 0:
@@ -133,14 +135,30 @@ def train(args, train_dataset, model, tokenizer):
                 ##################################################
                 # TODO(cos598d): perform backward pass here
                 loss.backward()
-                
                 ##################################################
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
-            # Record the loss values of the first five minibatches 
-            # by printing the loss value after every iteration
-            if step <= 5:
-                print("Loss value at iteration", step, ":", loss.item())
+            # Deal with distributed training
+            torch.distributed.barrier()
+            
+            # Gather gradients from all replicas
+            for i, param in enumerate(model.parameters()):
+                if torch.distributed.get_rank() == 0:
+                    grads = [torch.zeros_like(param.grad) for _ in range(torch.distributed.get_world_size())]
+                    torch.distributed.gather(param.grad, gather_list=grads)
+                else:
+                    torch.distributed.gather(param.grad) # Send gradients to the root process
+                
+                # Average the gradients
+                if torch.distributed.get_rank() == 0:
+                    avg_grad = torch.stack(grads).mean(dim=0)
+                    param.grad = avg_grad
+                    torch.distributed.scatter(param.grad, scatter_list=avg_grad)
+                else:
+                    # Scatter the gradients back to all processes
+                    torch.distributed.scatter(param.grad)
+                
+            torch.distributed.barrier() # Wait for all processes to finish updating their gradients                 
 
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
@@ -163,7 +181,7 @@ def train(args, train_dataset, model, tokenizer):
         
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
-        results = evaluate(args, model, tokenizer, prefix="")
+        results = evaluate(args, model, tokenizer)
         ##################################################
 
     return global_step, tr_loss / global_step
@@ -356,6 +374,8 @@ def main():
                              "See details at https://nvidia.github.io/apex/amp.html")
     parser.add_argument("--local_rank", type=int, default=-1,
                         help="For distributed training: local_rank. If single-node training, local_rank defaults to -1.")
+    parser.add_argument('--master_addr', type=str, default='localhost', required=True, help='Master address for distributed training')
+    parser.add_argument('--master_port', type=str, default='8888', required=True, help='Master port for distributed training')
     args = parser.parse_args()
 
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
@@ -364,6 +384,11 @@ def main():
     # set up (distributed) training
     args.device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
     args.n_gpu = torch.cuda.device_count()
+    # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
+    os.environ['MASTER_ADDR'] = args.master_addr
+    os.environ['MASTER_PORT'] = args.master_port
+    torch.distributed.init_process_group(rank=args.local_rank, world_size=WORLD_SIZE, backend="gloo")
+
 
     # Setup logging
     logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -396,11 +421,18 @@ def main():
     ##################################################
     # TODO(cos598d): load the model using from_pretrained. Remember to pass in `config` as an argument.
     # If you pass in args.model_name_or_path (e.g. "bert-base-cased"), the model weights file will be downloaded from HuggingFace.
-    model = model_class.from_pretrained(args.model_name_or_path, from_tf=bool('.ckpt' in args.model_name_or_path), config=config)
+    model = model_class.from_pretrained(
+        args.model_name_or_path, 
+        # from_tf=bool('.ckpt' in args.model_name_or_path),
+        config=config
+    )
     ##################################################
 
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
+
+
+    torch.distributed.init_process_group(backend='nccl')
 
     model.to(args.device)
 
