@@ -304,6 +304,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
 
 
 def main():
+    print("Starting program...")
     parser = argparse.ArgumentParser()
 
     ## Required parameters
