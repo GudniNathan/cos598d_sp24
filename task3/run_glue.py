@@ -431,7 +431,7 @@ def main():
         # from_tf=bool('.ckpt' in args.model_name_or_path),
         config=config
     )
-    ddp_model = DDP(model, device_ids=[args.local_rank], output_device=0)
+    ddp_model = DDP(model, device_ids=[i for i in range(args.world_size)], output_device=0)
     ##################################################
 
     if args.local_rank == 0:
