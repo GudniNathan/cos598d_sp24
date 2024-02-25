@@ -48,6 +48,8 @@ from pytorch_transformers import AdamW, WarmupLinearSchedule
 from utils_glue import (compute_metrics, convert_examples_to_features,
                         output_modes, processors)
 
+from torch.nn.parallel import DistributedDataParallel as DDP
+
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig, RobertaConfig)), ())
@@ -144,42 +146,6 @@ def train(args, train_dataset, model, tokenizer):
                 loss.backward()
                 ##################################################
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
-
-            # # Deal with distributed training
-            # torch.distributed.barrier()
-            
-            # # Gather gradients from all replicas
-            # for i, param in enumerate(model.parameters()):
-            #     if torch.distributed.get_rank() == 0:
-            #         grads = [torch.zeros_like(param.grad) for _ in range(torch.distributed.get_world_size())]
-            #         torch.distributed.gather(param.grad, gather_list=grads)
-            #     else:
-            #         torch.distributed.gather(param.grad) # Send gradients to the root process
-                
-            #     # Average the gradients
-            #     if torch.distributed.get_rank() == 0:
-            #         avg_grad = torch.stack(grads).mean(dim=0)
-            #         # param.grad = avg_grad
-            #         scatter_list = [avg_grad for _ in range(args.world_size)]
-            #         torch.distributed.scatter(param.grad, scatter_list=scatter_list)
-            #     else:
-            #         # Scatter the gradients back to all processes
-            #         torch.distributed.scatter(param.grad)
-                
-            # torch.distributed.barrier() # Wait for all processes to finish updating their gradients                 
-
-            # torch.distributed.barrier() # Wait for all processes to finish updating their gradients
-            handles = []
-            for i, param in enumerate(model.parameters()):
-                handle = torch.distributed.all_reduce(param.grad, op=torch.distributed.ReduceOp.SUM, async_op=True)
-                handles.append(handle)
-            
-            for i, param in enumerate(model.parameters()):
-                handles[i].wait()
-                param.grad /= args.world_size # Average the gradients
-                print("Average gradient for parameter", i, ":", param.grad)               
-                
-            # torch.distributed.barrier() # Wait for all processes to finish updating their gradients
 
 
             tr_loss += loss.item()
@@ -465,6 +431,7 @@ def main():
         # from_tf=bool('.ckpt' in args.model_name_or_path),
         config=config
     )
+    ddp_model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank)
     ##################################################
 
     if args.local_rank == 0:
@@ -473,7 +440,7 @@ def main():
 
     # torch.distributed.init_process_group(backend='nccl')
 
-    model.to(args.device)
+    ddp_model.to(args.device)
 
     logger.info("Training/evaluation parameters %s", args)
 
@@ -481,11 +448,14 @@ def main():
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
-        global_step, tr_loss = train(args, train_dataset, model, tokenizer)
+        global_step, tr_loss = train(args, train_dataset, ddp_model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
     # Evaluation
-    evaluate(args, model, tokenizer, prefix="")
+    evaluate(args, ddp_model, tokenizer, prefix="")
+    
+    # Clean up process group
+    torch.distributed.destroy_process_group()
 
 if __name__ == "__main__":
     main()

@@ -48,6 +48,7 @@ from pytorch_transformers import AdamW, WarmupLinearSchedule
 from utils_glue import (compute_metrics, convert_examples_to_features,
                         output_modes, processors)
 
+
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig, RobertaConfig)), ())
@@ -473,6 +474,9 @@ def main():
 
     # Evaluation
     evaluate(args, model, tokenizer, prefix="")
+    
+    # Clean up process group
+    torch.distributed.destroy_process_group()
 
 if __name__ == "__main__":
     main()
