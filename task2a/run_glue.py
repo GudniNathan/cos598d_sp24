@@ -185,7 +185,7 @@ def train(args, train_dataset, model, tokenizer):
             # Record the loss values of the first five minibatches 
             # by printing the loss value after every iteration
             if global_step <= 5:
-                logger.info("Loss value at iteration %d: %f", step, tr_loss)
+                logger.info("Loss value at iteration %d: %f", global_step, tr_loss)
             if 1 < global_step <= 40:
                 elapsed_time = time.time() - timer_start
                 average_elapsed_time = elapsed_time / global_step
