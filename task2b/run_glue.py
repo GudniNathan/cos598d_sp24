@@ -23,6 +23,8 @@ import logging
 import os
 import random
 
+import time
+
 import numpy as np
 import torch
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
@@ -57,8 +59,6 @@ MODEL_CLASSES = {
     'roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
 }
 
-WORLD_SIZE = 4
-
 
 def set_seed(args):
     random.seed(args.seed)
@@ -73,7 +73,7 @@ def train(args, train_dataset, model, tokenizer):
     """ Train the model """
 
     args.train_batch_size = args.per_gpu_train_batch_size
-    train_sampler = DistributedSampler(train_dataset, num_replicas=WORLD_SIZE, rank=args.local_rank)
+    train_sampler = DistributedSampler(train_dataset, num_replicas=args.world_size, rank=args.local_rank)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size)
 
     if args.max_steps > 0:
@@ -109,6 +109,7 @@ def train(args, train_dataset, model, tokenizer):
 
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
+    total_iteration_time = 0
     model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
@@ -118,6 +119,9 @@ def train(args, train_dataset, model, tokenizer):
         print("Epoch", epoch, "started.") 
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
+            # Want to report the average time per iteration, discarding the first iteration
+            iteration_time = time.time()
+
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids':      batch[0],
@@ -156,7 +160,7 @@ def train(args, train_dataset, model, tokenizer):
                 if torch.distributed.get_rank() == 0:
                     avg_grad = torch.stack(grads).mean(dim=0)
                     # param.grad = avg_grad
-                    scatter_list = [avg_grad for _ in range(WORLD_SIZE)]
+                    scatter_list = [avg_grad for _ in range(args.world_size)]
                     torch.distributed.scatter(param.grad, scatter_list=scatter_list)
                 else:
                     # Scatter the gradients back to all processes
@@ -164,10 +168,6 @@ def train(args, train_dataset, model, tokenizer):
                 
             torch.distributed.barrier() # Wait for all processes to finish updating their gradients                 
 
-            # Record the loss values of the first five minibatches 
-            # by printing the loss value after every iteration
-            if step <= 5:
-                logger.info("Loss value at iteration %d: %f", step, loss.item())
 
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
@@ -180,6 +180,15 @@ def train(args, train_dataset, model, tokenizer):
                 ##################################################
                 model.zero_grad()
                 global_step += 1
+            
+            # Record the loss values of the first five minibatches 
+            # by printing the loss value after every iteration
+            if global_step <= 5:
+                logger.info(" \tLoss value at iteration %d: %f", global_step, tr_loss)
+            if 1 < global_step <= 40:
+                total_iteration_time += time.time() - iteration_time
+                average_elapsed_time = total_iteration_time / (global_step - 1)
+                print(" \tAverage elapsed time per iteration:", f"{average_elapsed_time:.4f}", "at iteration ", global_step)
 
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
@@ -187,7 +196,7 @@ def train(args, train_dataset, model, tokenizer):
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
             break
-        
+                
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         evaluate(args, model, tokenizer)
@@ -384,8 +393,12 @@ def main():
                              "See details at https://nvidia.github.io/apex/amp.html")
     parser.add_argument("--local_rank", type=int, default=-1,
                         help="For distributed training: local_rank. If single-node training, local_rank defaults to -1.")
-    parser.add_argument('--master_addr', type=str, default='localhost', required=True, help='Master address for distributed training')
-    parser.add_argument('--master_port', type=str, default='8888', required=True, help='Master port for distributed training')
+    parser.add_argument('--master_addr', type=str, default='localhost', required=True, 
+                        help='Master address for distributed training')
+    parser.add_argument('--master_port', type=str, default='8888', required=True, 
+                        help='Master port for distributed training')
+    parser.add_argument('--world_size', type=int, default=4, required=True, 
+                        help='Number of processes participating in distributed training')
     args = parser.parse_args()
 
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
@@ -397,10 +410,11 @@ def main():
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
     os.environ['MASTER_ADDR'] = args.master_addr
     os.environ['MASTER_PORT'] = args.master_port
-    print("Initializing distributed training...")
-    torch.distributed.init_process_group(rank=args.local_rank, world_size=WORLD_SIZE, backend="gloo")
 
-    print("Distributed training with rank", args.local_rank, "and world size", WORLD_SIZE)
+    print("Initializing distributed training...")
+    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo")
+
+    print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
 
     # Setup logging
     logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
