@@ -435,7 +435,7 @@ def main():
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
 
-    torch.distributed.init_process_group(backend='nccl')
+    # torch.distributed.init_process_group(backend='nccl')
 
     model.to(args.device)
 
