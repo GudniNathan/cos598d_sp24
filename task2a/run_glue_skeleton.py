@@ -140,7 +140,6 @@ def train(args, train_dataset, model, tokenizer):
 
             # Deal with distributed training
             torch.distributed.barrier()
-            print("Rank", torch.distributed.get_rank(), "finished backward pass")
             
             # Gather gradients from all replicas
             for i, param in enumerate(model.parameters()):
