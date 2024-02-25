@@ -205,8 +205,8 @@ def evaluate(args, model, tokenizer, prefix=""):
     for eval_task, eval_output_dir in zip(eval_task_names, eval_outputs_dirs):
         eval_dataset = load_and_cache_examples(args, eval_task, tokenizer, evaluate=True)
 
-        # if not os.path.exists(eval_output_dir) and args.local_rank in [-1, 0]:
-        os.makedirs(eval_output_dir)
+        if not os.path.exists(eval_output_dir): #and args.local_rank in [-1, 0]:
+            os.makedirs(eval_output_dir)
 
         args.eval_batch_size = args.per_gpu_eval_batch_size
         # Note that DistributedSampler samples randomly
