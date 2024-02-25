@@ -184,11 +184,11 @@ def train(args, train_dataset, model, tokenizer):
             # Record the loss values of the first five minibatches 
             # by printing the loss value after every iteration
             if global_step <= 5:
-                logger.info("Loss value at iteration %d: %f", global_step, tr_loss)
+                logger.info(" \tLoss value at iteration %d: %f", global_step, tr_loss)
             if 1 < global_step <= 40:
                 total_iteration_time += time.time() - iteration_time
                 average_elapsed_time = total_iteration_time / (global_step - 1)
-                print("Average elapsed time per iteration:", average_elapsed_time)
+                print(" \tAverage elapsed time per iteration:", average_elapsed_time)
 
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
