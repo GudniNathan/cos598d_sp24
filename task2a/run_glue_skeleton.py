@@ -162,6 +162,11 @@ def train(args, train_dataset, model, tokenizer):
                 
             torch.distributed.barrier() # Wait for all processes to finish updating their gradients                 
 
+            # Record the loss values of the first five minibatches 
+            # by printing the loss value after every iteration
+            if step <= 5:
+                logger.info("Loss value at iteration %d: %f", step, loss.item())
+
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
                 scheduler.step()  # Update learning rate schedule
