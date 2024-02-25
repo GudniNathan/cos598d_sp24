@@ -13,7 +13,7 @@ python3 run_glue_skeleton.py \
   --learning_rate 2e-5 \
   --num_train_epochs 3 \
   --output_dir /tmp/$TASK_NAME/ \
-  --overwrite_output_dir
-  --local_rank $LOCAL_RANK
-  --master-addr "10.10.1.2"
+  --overwrite_output_dir \
+  --local_rank $LOCAL_RANK \
+  --master-addr "10.10.1.2" \
   --master-port 8888
