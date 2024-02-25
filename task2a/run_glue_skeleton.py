@@ -389,6 +389,7 @@ def main():
     os.environ['MASTER_PORT'] = args.master_port
     torch.distributed.init_process_group(rank=args.local_rank, world_size=WORLD_SIZE, backend="gloo")
 
+    print("Distributed training with rank", args.local_rank, "and world size", WORLD_SIZE)
 
     # Setup logging
     logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
