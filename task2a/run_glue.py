@@ -23,6 +23,8 @@ import logging
 import os
 import random
 
+import time
+
 import numpy as np
 import torch
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
@@ -107,6 +109,7 @@ def train(args, train_dataset, model, tokenizer):
 
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
+    timer = None # initialize timer variable
     model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
@@ -116,6 +119,10 @@ def train(args, train_dataset, model, tokenizer):
         print("Epoch", epoch, "started.") 
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
+            # Want to report the average time per iteration, discarding the first iteration
+            if step == 1:
+                timer = time.time()
+
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids':      batch[0],
@@ -162,10 +169,6 @@ def train(args, train_dataset, model, tokenizer):
                 
             torch.distributed.barrier() # Wait for all processes to finish updating their gradients                 
 
-            # Record the loss values of the first five minibatches 
-            # by printing the loss value after every iteration
-            if step <= 5:
-                logger.info("Loss value at iteration %d: %f", step, loss.item())
 
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
@@ -178,6 +181,15 @@ def train(args, train_dataset, model, tokenizer):
                 ##################################################
                 model.zero_grad()
                 global_step += 1
+            
+            # Record the loss values of the first five minibatches 
+            # by printing the loss value after every iteration
+            if step <= 5:
+                logger.info("Loss value at iteration %d: %f", step, loss.item())
+            if 0 < step < 40:
+                elapsed_time += time.time() - timer
+                average_elapsed_time = elapsed_time / step
+                print("Average elapsed time per iteration:", average_elapsed_time)
 
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
@@ -185,7 +197,7 @@ def train(args, train_dataset, model, tokenizer):
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
             break
-        
+                
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         evaluate(args, model, tokenizer)
