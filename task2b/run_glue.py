@@ -174,9 +174,8 @@ def train(args, train_dataset, model, tokenizer):
                 handle = torch.distributed.all_reduce(param.grad, op=torch.distributed.ReduceOp.SUM, async_op=True)
                 handles.append(handle)
             
-            for i, handle in enumerate(handles):
-                handle.wait()
-                param = model.parameters()[i]
+            for i, param in enumerate(model.parameters()):
+                handles[i].wait()
                 param.grad /= args.world_size # Average the gradients               
                 
             # torch.distributed.barrier() # Wait for all processes to finish updating their gradients
