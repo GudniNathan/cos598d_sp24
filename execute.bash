@@ -3,7 +3,7 @@ git pull
 export GLUE_DIR=$HOME/glue_data
 export TASK_NAME=RTE
 
-python3 run_glue_skeleton.py \
+python3 run_glue.py \
   --model_type bert \
   --model_name_or_path bert-base-cased \
   --task_name $TASK_NAME \
