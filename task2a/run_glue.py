@@ -109,7 +109,7 @@ def train(args, train_dataset, model, tokenizer):
 
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
-    timer = None # initialize timer variable
+    timer_start = None # initialize timer variable
     model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
@@ -121,7 +121,7 @@ def train(args, train_dataset, model, tokenizer):
         for step, batch in enumerate(epoch_iterator):
             # Want to report the average time per iteration, discarding the first iteration
             if step == 1:
-                timer = time.time()
+                timer_start = time.time()
 
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
@@ -184,11 +184,11 @@ def train(args, train_dataset, model, tokenizer):
             
             # Record the loss values of the first five minibatches 
             # by printing the loss value after every iteration
-            if step <= 5:
-                logger.info("Loss value at iteration %d: %f", step, loss.item())
-            if 0 < step < 40:
-                elapsed_time += time.time() - timer
-                average_elapsed_time = elapsed_time / step
+            if global_step <= 5:
+                logger.info("Loss value at iteration %d: %f", step, tr_loss)
+            if 0 < global_step < 40:
+                elapsed_time = time.time() - timer_start
+                average_elapsed_time = elapsed_time / global_step
                 print("Average elapsed time per iteration:", average_elapsed_time)
 
             if args.max_steps > 0 and global_step > args.max_steps:
