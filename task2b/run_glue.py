@@ -177,7 +177,6 @@ def train(args, train_dataset, model, tokenizer):
             for i, param in enumerate(model.parameters()):
                 handles[i].wait()
                 param.grad /= args.world_size # Average the gradients
-                print("Average gradient for parameter", i, ":", param.grad)               
                 
             # torch.distributed.barrier() # Wait for all processes to finish updating their gradients
 
