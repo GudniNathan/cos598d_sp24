@@ -15,7 +15,7 @@ python3 run_glue.py \
   --per_gpu_train_batch_size 64 \
   --learning_rate 2e-5 \
   --weight_decay 0.01 \
-  --num_train_epochs 3 \
+  --num_train_epochs 4 \
   --output_dir /tmp/$TASK_NAME/ \
   --overwrite_output_dir \
   --local_rank $LOCAL_RANK \
