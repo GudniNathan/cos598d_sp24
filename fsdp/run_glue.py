@@ -52,6 +52,7 @@ from utils_glue import (compute_metrics, convert_examples_to_features,
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.fully_sharded_data_parallel import (
     CPUOffload,
     BackwardPrefetch,
@@ -104,9 +105,9 @@ def train(args, train_dataset, model, tokenizer):
     fsdp_model = FSDP(
         model,
         cpu_offload=CPUOffload(True),
-        compute_dtype=torch.float,
         wrap_policy=my_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.BACKWARD_PRE,
+        sharding_strategy=ShardingStrategy.FULL_SHARD,
     )
     
     # Prepare optimizer and schedule (linear warmup and decay)
