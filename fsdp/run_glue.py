@@ -106,7 +106,7 @@ def train(args, train_dataset, model, tokenizer):
         cpu_offload=CPUOffload(True),
         compute_dtype=torch.float,
         wrap_policy=my_auto_wrap_policy,
-        backward_prefetch=BackwardPrefetch.PREFETCH,
+        backward_prefetch=BackwardPrefetch.BACKWARD_PRE,
     )
     
     # Prepare optimizer and schedule (linear warmup and decay)
