@@ -25,6 +25,7 @@ import random
 import functools
 
 import time
+from datetime import timedelta
 
 import numpy as np
 import torch
@@ -417,7 +418,7 @@ def main():
     
 
     print("Initializing distributed training...")
-    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo", timeout=time.timedelta(seconds=100))
+    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo", timeout=timedelta(seconds=100))
         
     
 
