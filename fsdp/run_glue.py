@@ -103,7 +103,7 @@ def train(args, train_dataset, model, tokenizer):
     
     fsdp_model = FSDP(
         model,
-        cpu_offload=CPUOffload.OFFLOAD,
+        cpu_offload=CPUOffload(True),
         compute_dtype=torch.float,
         wrap_policy=my_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.PREFETCH,
