@@ -1,0 +1,32 @@
+Alright, we need to get this sucker done.
+
+
+What do we have already?
+- Data parallelism - three methods: 
+    - manual sync,
+    - all-reduce sync, and
+    - DDP (distribute data parallel)
+
+What are we going to actually do?
+
+So, the original project proposal talked about specifically FSDP and ZeRO.
+
+What would we need to do to implement FSDP?
+    - It seems like it is just practically a drop in replacement?
+    - What about the different levels of the model?
+    - How do I tell each instance that it is running only these specific layers?
+
+
+What would we need to implement ZeRO
+    - Research, what is ZeRO actually? 
+    - I know that it is something like pipeline parallel.
+
+Perhaps it would be more prudent to simply use Pytorch Pipeline Parallel.
+https://pytorch.org/docs/stable/pipeline.html
+
+
+
+So overall.
+
+1. Figure out FSDP. How does it work? What is it? Can I split the model up?
+

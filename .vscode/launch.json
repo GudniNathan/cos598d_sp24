@@ -1,0 +1,36 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: File with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "fsdp/run_glue.py",
+            "console": "integratedTerminal",
+            "env": {
+                "GLUE_DIR": "$HOME/glue_data",
+                "TASK_NAME": "RTE"
+            },
+            "args": [
+                "--model_type", "bert",
+                "--model_name_or_path", "bert-base-cased",
+                "--task_name", "RTE",
+                "--do_train",
+                "--do_eval",
+                "--data_dir",  "$HOME/glue_data/RTE",
+                "--max_seq_length",  "128",
+                "--per_gpu_train_batch_size",  "64",
+                "--learning_rate",  "2e-5",
+                "--num_train_epochs",  "3",
+                "--output_dir",  "/tmp/$TASK_NAME/",
+                "--overwrite_output_dir",
+                "--master_addr", "localhost",
+                "--master_port", "29500",
+                "--world_size", "1",
+            ]
+        }
+    ]
+}

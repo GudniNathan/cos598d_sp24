@@ -1,0 +1,1 @@
+git clone https://github.com/GudniNathan/cos598d_sp24; cd cos598d_sp24; bash install.bash; bash execute.bash
