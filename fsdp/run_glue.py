@@ -417,7 +417,7 @@ def main():
     
 
     print("Initializing distributed training...")
-    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo")
+    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo", timeout=time.timedelta(seconds=100))
         
     
 
