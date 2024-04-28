@@ -108,6 +108,7 @@ def train(args, train_dataset, model, tokenizer):
         auto_wrap_policy=my_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.BACKWARD_PRE,
         sharding_strategy=ShardingStrategy.FULL_SHARD,
+        device_id="cpu",
     )
     
     # Prepare optimizer and schedule (linear warmup and decay)
