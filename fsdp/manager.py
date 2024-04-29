@@ -1,8 +1,9 @@
 import subprocess
 
 def main():
+    processes = []
     for i in range(1, 4):
-        subprocess.Popen(
+        p = subprocess.Popen(
             ["bash", "execute.bash"], 
             env={
                 "MASTER_ADDR": "localhost",
@@ -13,6 +14,7 @@ def main():
             stdout=subprocess.DEVNULL, # suppress output
             stderr=subprocess.DEVNULL
         )
+        processes.append(p)
     
     subprocess.run(
         ["bash", "execute.bash"], 
@@ -23,6 +25,8 @@ def main():
             "HOME": "/workspace"
         },
     )
+    for p in processes:
+        p.wait()
 
 if __name__ == "__main__":
     main()
