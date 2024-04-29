@@ -9,7 +9,8 @@ def main():
                 "MASTER_PORT": "8000",
                 "LOCAL_RANK": f"{i}",
                 "HOME": "/workspace"
-            }
+            },
+            capture_output=False
         )
     
     subprocess.run(
