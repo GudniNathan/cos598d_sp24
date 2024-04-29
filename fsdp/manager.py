@@ -22,7 +22,6 @@ def main():
             "LOCAL_RANK": "0",
             "HOME": "/workspace"
         },
-        capture_output=True
     )
 
 if __name__ == "__main__":
