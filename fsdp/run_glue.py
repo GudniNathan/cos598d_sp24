@@ -86,6 +86,8 @@ def set_seed(args):
 
 def train(args, train_dataset, model, tokenizer):
     """ Train the model """
+    
+    print("Starting training...")
 
     args.train_batch_size = args.per_gpu_train_batch_size
     train_sampler = DistributedSampler(train_dataset, num_replicas=args.world_size, rank=args.local_rank)
