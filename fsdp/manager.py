@@ -8,6 +8,7 @@ def main():
                 "MASTER_ADDR": "localhost",
                 "MASTER_PORT": "8000",
                 "LOCAL_RANK": f"{i}",
+                "HOME": "/workspace"
             }
         )
     
@@ -17,6 +18,7 @@ def main():
             "MASTER_ADDR": "localhost",
             "MASTER_PORT": "8000",
             "LOCAL_RANK": "0",
+            "HOME": "/workspace"
         }
     )
 
