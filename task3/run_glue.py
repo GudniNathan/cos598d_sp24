@@ -388,6 +388,8 @@ def main():
 
     # set up (distributed) training
     args.device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+    if torch.cuda.is_available():
+        args.device = torch.device(f"cuda:{args.local_rank}")
     args.n_gpu = torch.cuda.device_count()
     print("Number of GPUs:", args.n_gpu)
     
