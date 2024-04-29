@@ -1,4 +1,4 @@
-git pull
+git pullxx
 
 export GLUE_DIR=$HOME/glue_data
 export TASK_NAME=RTE
@@ -20,5 +20,5 @@ python3 run_glue.py \
   --overwrite_output_dir \
   --local_rank $LOCAL_RANK \
   --master_addr $MASTER_ADDR \
-  --master_port 8888 \
+  --master_port 8000 \
   --world_size $WORLD_SIZE
