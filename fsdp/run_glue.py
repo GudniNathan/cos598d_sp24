@@ -412,7 +412,7 @@ def main():
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
 
     # set up (distributed) training
-    args.device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+    args.device = torch.device(f"cuda:{args.local_rank}" if torch.cuda.is_available() and not args.no_cuda else "cpu")
     args.n_gpu = torch.cuda.device_count()
         
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
@@ -422,7 +422,7 @@ def main():
     
 
     print("Initializing distributed training...")
-    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo", timeout=timedelta(seconds=100))
+    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="nccl", timeout=timedelta(seconds=100))
         
     
 
