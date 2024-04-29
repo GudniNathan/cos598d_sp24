@@ -1,4 +1,4 @@
-git pullxx
+git pull
 
 export GLUE_DIR=$HOME/glue_data
 export TASK_NAME=RTE
