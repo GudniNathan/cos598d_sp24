@@ -397,7 +397,7 @@ def main():
     print("Master address:", args.master_addr +":" + args.master_port)
 
     print("Initializing distributed training...")
-    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo", timeout=timedelta(seconds=100))
+    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo", timeout=timedelta(seconds=60))
 
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
 
