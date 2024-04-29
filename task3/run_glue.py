@@ -387,9 +387,12 @@ def main():
     # set up (distributed) training
     args.device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
     args.n_gpu = torch.cuda.device_count()
+    print("Number of GPUs:", args.n_gpu)
+    
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
     os.environ['MASTER_ADDR'] = args.master_addr
     os.environ['MASTER_PORT'] = args.master_port
+    print("Master address:", args.master_addr +":" + args.master_port)
 
     print("Initializing distributed training...")
     torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo")

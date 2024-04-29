@@ -418,6 +418,7 @@ def main():
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
     os.environ['MASTER_ADDR'] = args.master_addr
     os.environ['MASTER_PORT'] = args.master_port
+    print("Master address:", args.master_addr +":" + args.master_port)
     
 
     print("Initializing distributed training...")
