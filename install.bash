@@ -1,5 +1,5 @@
-sudo apt-get update
-sudo apt-get -y install htop dstat python3-pip
+apt-get update
+apt-get -y install htop dstat python3-pip
 
 # Install PyTorch and other dependencies
 pip3 install torch torchvision
