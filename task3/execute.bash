@@ -20,5 +20,5 @@ python3 run_glue.py \
   --overwrite_output_dir \
   --local_rank $LOCAL_RANK \
   --master_addr $MASTER_ADDR \
-  --master_port 8000 \
+  --master_port $MASTER_PORT \
   --world_size $WORLD_SIZE
