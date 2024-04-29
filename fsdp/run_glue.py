@@ -424,7 +424,7 @@ def main():
 
     print("Initializing distributed training...")
     torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="nccl", timeout=timedelta(seconds=100))
-        
+    torch.cuda.set_device(args.local_rank)
     
 
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
