@@ -108,7 +108,7 @@ def train(args, train_dataset, model, tokenizer):
     
     fsdp_model = FSDP(
         model,
-        cpu_offload=CPUOffload(True),
+        cpu_offload=CPUOffload(False),
         auto_wrap_policy=size_based_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.BACKWARD_POST,
         sharding_strategy=ShardingStrategy.FULL_SHARD,
@@ -488,8 +488,8 @@ def main():
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
-    else:
-        model.to(args.device)
+
+    model.to(args.device)
 
     # Evaluation
     evaluate(args, model, tokenizer, prefix="")
