@@ -19,6 +19,6 @@ python3 run_glue.py \
   --output_dir /tmp/$TASK_NAME/ \
   --overwrite_output_dir \
   --local_rank $LOCAL_RANK \
-  --master_addr "10.10.1.2" \
+  --master_addr $MASTER_ADDR \
   --master_port 8888 \
   --world_size $WORLD_SIZE
