@@ -2,7 +2,7 @@ git pull
 
 export GLUE_DIR=$HOME/glue_data
 export TASK_NAME=RTE
-export WORLD_SIZE=2
+export WORLD_SIZE=4
 
 python3 run_glue.py \
   --model_type bert \
