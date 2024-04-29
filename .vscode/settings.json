@@ -4,7 +4,7 @@
             {
                 "match": ".*",
                 "isAsync": true,
-                "cmd": "git commit -a -m \"vscode autosave\" && git push --all",
+                "cmd": "git commit -a -m \"vscode autosave\" && git push --all --force",
             },
         ]
     }
