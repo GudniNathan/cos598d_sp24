@@ -3,8 +3,8 @@
         "commands": [
             {
                 "match": ".*",
-                "isAsync": false,
-                "cmd": "git commit -a -m \"vscode autosave\"; git push",
+                "isAsync": true,
+                "cmd": "git commit -a -m \"vscode autosave\" && git push",
             },
         ]
     }
