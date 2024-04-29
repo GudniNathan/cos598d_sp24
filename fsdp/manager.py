@@ -26,7 +26,7 @@ def main():
         },
     )
     for p in processes:
-        p.wait()
+        p.wait() 
 
 if __name__ == "__main__":
     main()
