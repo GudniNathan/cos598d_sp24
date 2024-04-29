@@ -6,6 +6,11 @@
                 "isAsync": false,
                 "cmd": "git commit -a -m \"vscode autosave\"",
             },
+            {
+                "match": ".*",
+                "isAsync": false,
+                "cmd": "git push",
+            }
         ]
     }
 }
