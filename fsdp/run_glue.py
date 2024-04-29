@@ -106,8 +106,8 @@ def train(args, train_dataset, model, tokenizer):
     
     fsdp_model = FSDP(
         model,
-        cpu_offload=CPUOffload(True),
-        auto_wrap_policy=my_auto_wrap_policy,
+        # cpu_offload=CPUOffload(True),
+        # auto_wrap_policy=my_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.BACKWARD_PRE,
         sharding_strategy=ShardingStrategy.FULL_SHARD,
         device_id=args.local_rank,
