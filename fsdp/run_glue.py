@@ -489,7 +489,7 @@ def main():
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
-    model.to(args.device)
+    model.to(args.device) 
 
     # Evaluation
     evaluate(args, model, tokenizer, prefix="")
