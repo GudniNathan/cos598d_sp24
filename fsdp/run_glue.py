@@ -29,6 +29,8 @@ from datetime import timedelta
 
 import numpy as np
 import torch
+import torch.distributed
+import torch.distributed.fsdp
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
@@ -106,12 +108,15 @@ def train(args, train_dataset, model, tokenizer):
     
     fsdp_model = FSDP(
         model,
-        # cpu_offload=CPUOffload(True),
+        cpu_offload=CPUOffload(True),
         auto_wrap_policy=size_based_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.BACKWARD_POST,
         sharding_strategy=ShardingStrategy.HYBRID_SHARD,
         device_id=args.local_rank,
+        sync_module_states=True,
     )
+    
+    fsdp_model.to(args.local_rank)
     
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ['bias', 'LayerNorm.weight']
@@ -474,7 +479,6 @@ def main():
 
     # torch.distributed.init_process_group(backend='nccl')
 
-    model.to(args.device)
 
     logger.info("Training/evaluation parameters %s", args)
 
@@ -484,6 +488,8 @@ def main():
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
+    else:
+        model.to(args.device)
 
     # Evaluation
     evaluate(args, model, tokenizer, prefix="")
