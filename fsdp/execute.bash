@@ -18,7 +18,6 @@ torchrun --nnodes 1 --nproc_per_node 4 run_glue.py \
   --num_train_epochs 10 \
   --output_dir /tmp/RTE/ \
   --overwrite_output_dir \
-  --local_rank $LOCAL_RANK \
   --master_addr $MASTER_ADDR \
   --master_port $MASTER_PORT \
   --world_size 4
