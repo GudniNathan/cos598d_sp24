@@ -49,7 +49,8 @@ from pytorch_transformers import (WEIGHTS_NAME, BertConfig,
                                   XLNetTokenizer)
 
 from pytorch_transformers import AdamW, WarmupLinearSchedule
-from pytorch_transformers.modeling_bert import BertEncoder, BertLayer
+from pytorch_transformers.modeling_bert import BertEncoder, BertLayer, BertAttention, BertIntermediate, BertOutput
+
 
 from utils_glue import (compute_metrics, convert_examples_to_features,
                         output_modes, processors)
@@ -117,8 +118,10 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     my_auto_wrap_policy = functools.partial(
         transformer_auto_wrap_policy,
         transformer_layer_cls={
-            # BertEncoder,
             BertLayer,
+            BertAttention,
+            BertIntermediate,
+            BertOutput,
         },
     )
     
