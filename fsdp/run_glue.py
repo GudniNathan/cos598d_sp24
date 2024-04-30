@@ -203,7 +203,10 @@ def train_main(args, train_dataset, model, tokenizer):
     for epoch in train_iterator:
         # Deal with distributed training
         t0 = time.time()
-        train_accuracy = train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=sampler1)
+        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
+        if args.run_validation:
+            curr_val_loss = validation(model, rank, world_size, val_loader)
+        scheduler.step()
         print("Epoch", epoch, "started.") 
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
@@ -334,6 +337,32 @@ def evaluate(args, model, tokenizer, prefix=""):
 
     return results
 
+def validation(model, rank, world_size, val_loader):
+    model.eval()
+    correct = 0
+    local_rank = int(os.environ['LOCAL_RANK'])
+    fsdp_loss = torch.zeros(3).to(local_rank)
+    if rank == 0:
+        inner_pbar = tqdm.tqdm(
+            range(len(val_loader)), colour="green", desc="Validation Epoch"
+        )
+    with torch.no_grad():
+        for batch in val_loader:
+            for key in batch.keys():
+                batch[key] = batch[key].to(local_rank)
+            output = model(input_ids=batch["source_ids"],attention_mask=batch["source_mask"],labels=batch["target_ids"])
+            fsdp_loss[0] += output["loss"].item()  # sum up batch loss
+            fsdp_loss[1] += len(batch)
+
+            if rank==0:
+                inner_pbar.update(1)
+
+    torch.dist.all_reduce(fsdp_loss, op=torch.dist.ReduceOp.SUM)
+    val_loss = fsdp_loss[0] / fsdp_loss[1]
+    if rank == 0:
+        inner_pbar.close()
+        print(f"Validation Loss: {val_loss:.4f}")
+    return val_loss
 
 def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     if args.local_rank not in [-1, 0]:
