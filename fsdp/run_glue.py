@@ -115,7 +115,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         if rank==0:
             inner_pbar.update(1)
 
-    torch.dist.all_reduce(fsdp_loss, op=torch.dist.ReduceOp.SUM)
+    torch.distributed.all_reduce(fsdp_loss, op=torch.dist.ReduceOp.SUM)
     train_accuracy = fsdp_loss[0] / fsdp_loss[1]
 
 
