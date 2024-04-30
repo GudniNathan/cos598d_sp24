@@ -104,7 +104,7 @@ def train(args, train_dataset, model, tokenizer):
     # Initialize the FSDP policy
     my_auto_wrap_policy = functools.partial(
         size_based_auto_wrap_policy,
-        min_num_params=0,
+        min_num_params=1,
     )
     
     fsdp_model = FSDP(
