@@ -37,7 +37,7 @@ from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
 # import a previous version of the HuggingFace Transformers package
-from pytorch_transformers import (WEIGHTS_NAME, BertConfig,
+from pytorch_transformers import (WEIGHTS_NAME, BertConfig, 
                                   BertForSequenceClassification, BertTokenizer,
                                   RobertaConfig,
                                   RobertaForSequenceClassification,
