@@ -106,6 +106,7 @@ def train(args, train_dataset, model, tokenizer):
         size_based_auto_wrap_policy,
         min_num_params=1,
     )
+    always_wrap = lambda module, *args, **kwargs: True
     
     fsdp_model = FSDP(
         model,
