@@ -104,14 +104,14 @@ def train(args, train_dataset, model, tokenizer):
     # Initialize the FSDP policy
     my_auto_wrap_policy = functools.partial(
         size_based_auto_wrap_policy,
-        min_num_params=1,
+        min_num_params=10,
     )
     always_wrap = lambda module, *args, **kwargs: True
     
     fsdp_model = FSDP(
         model,
         cpu_offload=CPUOffload(True),
-        auto_wrap_policy=always_wrap,
+        auto_wrap_policy=my_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.BACKWARD_POST,
         sharding_strategy=ShardingStrategy.FULL_SHARD,
         device_id=args.local_rank,
