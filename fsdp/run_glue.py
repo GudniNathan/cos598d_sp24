@@ -124,7 +124,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     
     torch.cuda.set_device(args.local_rank)
     
-    if False:
+    if True:
         model = FSDP(
             model,
             cpu_offload=CPUOffload(True),
