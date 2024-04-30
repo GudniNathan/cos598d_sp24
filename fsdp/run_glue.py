@@ -202,6 +202,8 @@ def train_main(args, train_dataset, model, tokenizer):
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
     for epoch in train_iterator:
         # Deal with distributed training
+        t0 = time.time()
+        train_accuracy = train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=sampler1)
         print("Epoch", epoch, "started.") 
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
