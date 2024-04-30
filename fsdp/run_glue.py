@@ -88,7 +88,43 @@ def set_seed(args):
     torch.cuda.manual_seed_all(args.seed)
 
 
-def train(args, train_dataset, model, tokenizer):
+def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None):
+    model.train()
+    local_rank = int(os.environ['LOCAL_RANK'])
+    fsdp_loss = torch.zeros(2).to(local_rank)
+
+    if sampler:
+        sampler.set_epoch(epoch)
+    if rank==0:
+        inner_pbar = tqdm.tqdm(
+            range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
+        )
+    for batch in train_loader:
+        for key in batch.keys():
+            batch[key] = batch[key].to(local_rank)
+        optimizer.zero_grad()
+        output = model(input_ids=batch["source_ids"],attention_mask=batch["source_mask"],labels=batch["target_ids"] )
+        loss = output["loss"]
+        loss.backward()
+        optimizer.step()
+        fsdp_loss[0] += loss.item()
+        fsdp_loss[1] += len(batch)
+        if rank==0:
+            inner_pbar.update(1)
+
+    torch.dist.all_reduce(fsdp_loss, op=torch.dist.ReduceOp.SUM)
+    train_accuracy = fsdp_loss[0] / fsdp_loss[1]
+
+
+    if rank == 0:
+        inner_pbar.close()
+        print(
+                f"Train Epoch: \t{epoch}, Loss: \t{train_accuracy:.4f}"
+            )
+    return train_accuracy
+    
+
+def train_main(args, train_dataset, model, tokenizer):
     """ Train the model """
     
     print("Starting training...")
@@ -423,7 +459,7 @@ def main(args):
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
-        global_step, tr_loss, model = train(args, train_dataset, model, tokenizer)
+        global_step, tr_loss, model = train_main(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
     else:
         model.to(args.device)
