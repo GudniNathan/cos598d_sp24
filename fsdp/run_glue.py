@@ -18,6 +18,7 @@
 from __future__ import absolute_import, division, print_function
 
 import argparse
+import datetime
 import glob
 import logging
 import os
@@ -67,6 +68,11 @@ from torch.distributed.fsdp.wrap import (
     wrap,
 )
 
+# import FullStateDictConfig
+from torch.distributed.fsdp import FullStateDictConfig, StateDictType
+
+from train_utils import *
+
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig, RobertaConfig)), ())
@@ -86,45 +92,6 @@ def set_seed(args):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     torch.cuda.manual_seed_all(args.seed)
-
-
-def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None):
-    model.train()
-    local_rank = int(os.environ['LOCAL_RANK'])
-    fsdp_loss = torch.zeros(2).to(local_rank)
-
-    if sampler:
-        sampler.set_epoch(epoch)
-    if rank==0:
-        inner_pbar = tqdm(
-            range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
-        )
-    for step, batch in enumerate(train_loader):
-        batch = tuple(t.to(args.device) for t in batch)
-        inputs = {'input_ids':      batch[0],
-                  'attention_mask': batch[1],
-                  'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
-                  'labels':         batch[3]}
-        output = model(**inputs)
-        loss = output[0]
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
-        optimizer.step()
-        fsdp_loss[0] += loss.item()
-        fsdp_loss[1] += len(batch)
-        if rank==0:
-            inner_pbar.update(1)
-
-    torch.distributed.all_reduce(fsdp_loss, op=torch.dist.ReduceOp.SUM)
-    train_accuracy = fsdp_loss[0] / fsdp_loss[1]
-
-
-    if rank == 0:
-        inner_pbar.close()
-        print(
-                f"Train Epoch: \t{epoch}, Loss: \t{train_accuracy:.4f}"
-            )
-    return train_accuracy
     
 
 def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
@@ -198,24 +165,80 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
                    args.train_batch_size * args.gradient_accumulation_steps * (torch.distributed.get_world_size() if args.local_rank != -1 else 1))
     logger.info("  Gradient Accumulation steps = %d", args.gradient_accumulation_steps)
     logger.info("  Total optimization steps = %d", t_total)
+    
+    if args.local_rank == 0:
+        time_of_run = get_date_of_run()
+        dur = []
+        train_acc_tracking = []
+        val_acc_tracking = []
+        training_start_time = time.time()
+
+    if args.local_rank == 0 and args.track_memory:
+        mem_alloc_tracker = []
+        mem_reserved_tracker = []
 
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
+    best_val_loss = float("inf")
+    curr_val_loss = float("inf")
+    file_save_name = f"{args.model_type}-{args.task_name}-model-"
     total_iteration_time = 0
     fsdp_model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
     for epoch in train_iterator:
+        print("Epoch", epoch, "started.") 
         # Deal with distributed training
         torch.distributed.barrier()
         t0 = time.time()
 
         train_accuracy = train(args, fsdp_model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
         if args.run_validation:
-            curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
+            curr_val_loss = validation(fsdp_model, args.local_rank, args.world_size, eval_dataloader)
         scheduler.step()
-        print("Epoch", epoch, "started.") 
-        epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
+        
+        if args.local_rank == 0:
+
+            print(f"--> epoch {epoch} completed...entering save and stats zone")
+
+            dur.append(time.time() - t0)
+            train_acc_tracking.append(train_accuracy.item())
+
+            if args.run_validation:
+                val_acc_tracking.append(curr_val_loss.item())
+
+            if args.track_memory:
+                mem_alloc_tracker.append(
+                    format_metrics_to_gb(torch.cuda.memory_allocated())
+                )
+                mem_reserved_tracker.append(
+                    format_metrics_to_gb(torch.cuda.memory_reserved())
+                )
+            print(f"completed save and stats zone...")
+        
+        if args.save_model and curr_val_loss < best_val_loss:
+            # save
+            if args.local_rank == 0:
+                print(f"--> entering save model state")
+
+            save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
+            with FSDP.state_dict_type(
+                fsdp_model, StateDictType.FULL_STATE_DICT, save_policy
+            ):
+                cpu_state = fsdp_model.state_dict()
+            #print(f"saving process: rank {rank}  done w state_dict")
+
+
+            if args.local_rank == 0:
+                print(f"--> saving model ...")
+                currEpoch = (
+                    "-" + str(epoch) + "-" + str(round(curr_val_loss.item(), 4)) + ".pt"
+                )
+                print(f"--> attempting to save model prefix {currEpoch}")
+                save_name = file_save_name + "-" + time_of_run + "-" + currEpoch
+                print(f"--> saving as model name {save_name}")
+
+                torch.save(cpu_state, save_name)
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
             break
@@ -313,7 +336,7 @@ def validation(model, rank, world_size, val_loader):
             if rank==0:
                 inner_pbar.update(1)
 
-    torch.dist.all_reduce(fsdp_loss, op=torch.dist.ReduceOp.SUM)
+    torch.distributed.all_reduce(fsdp_loss, op=torch.distributed.ReduceOp.SUM)
     val_loss = fsdp_loss[0] / fsdp_loss[1]
     if rank == 0:
         inner_pbar.close()
@@ -458,6 +481,21 @@ def main(args):
     
     # Clean up process group
     torch.distributed.destroy_process_group()
+
+def get_date_of_run():
+    """create date and time for file save uniqueness
+    example: 2022-05-07-08:31:12_PM'
+    """
+    date_of_run = datetime.now().strftime("%Y-%m-%d-%I:%M:%S_%p")
+    print(f"--> current date and time of run = {date_of_run}")
+    return date_of_run
+
+def format_metrics_to_gb(item):
+    """quick function to format numbers to gigabyte and round to 4 digit precision"""
+    metric_num = item / g_gigabyte
+    metric_num = round(metric_num, ndigits=4)
+    return metric_num
+
 
 if __name__ == "__main__":
     print("Starting program...")
