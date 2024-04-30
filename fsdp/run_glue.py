@@ -124,15 +124,18 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     
     torch.cuda.set_device(args.local_rank)
     
-    model = FSDP(
-        model,
-        cpu_offload=CPUOffload(True),
-        auto_wrap_policy=my_auto_wrap_policy,
-        backward_prefetch=BackwardPrefetch.BACKWARD_POST,
-        sharding_strategy=ShardingStrategy.FULL_SHARD,
-        device_id=args.local_rank,
-        sync_module_states=True,
-    )
+    if False:
+        model = FSDP(
+            model,
+            cpu_offload=CPUOffload(True),
+            auto_wrap_policy=my_auto_wrap_policy,
+            backward_prefetch=BackwardPrefetch.BACKWARD_POST,
+            sharding_strategy=ShardingStrategy.FULL_SHARD,
+            device_id=args.local_rank,
+            sync_module_states=True,
+        )
+    else:
+        model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank)
 
     # Print the model architecture to see how the model is sharded
     print(model)
@@ -468,21 +471,6 @@ def main(args):
         import pickle
         with open(filename, "wb") as f:
             pickle.dump(snap, f)
-
-
-def get_date_of_run():
-    """create date and time for file save uniqueness
-    example: 2022-05-07-08:31:12_PM'
-    """
-    date_of_run = datetime.now().strftime("%Y-%m-%d-%I:%M:%S_%p")
-    print(f"--> current date and time of run = {date_of_run}")
-    return date_of_run
-
-def format_metrics_to_gb(item):
-    """quick function to format numbers to gigabyte and round to 4 digit precision"""
-    metric_num = item / g_gigabyte
-    metric_num = round(metric_num, ndigits=4)
-    return metric_num
 
 
 if __name__ == "__main__":
