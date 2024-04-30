@@ -463,7 +463,12 @@ def main(args):
     if args.local_rank == 0:
         print("Training complete.")
         print("Exiting program...")
-        torch.cuda.memory._dump_snapshot("my_snapshot.pickle")
+        filename="dump_snapshot.pickle"
+        snap = torch.cuda.memory.memory_snapshot()
+        import pickle
+        with open(filename, "wb") as f:
+            pickle.dump(snap, f)
+
 
 def get_date_of_run():
     """create date and time for file save uniqueness
