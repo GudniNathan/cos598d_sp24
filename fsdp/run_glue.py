@@ -127,7 +127,6 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     model = FSDP(
         model,
         cpu_offload=CPUOffload(True),
-        auto_wrap_policy=my_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.BACKWARD_POST,
         sharding_strategy=ShardingStrategy.FULL_SHARD,
         device_id=args.local_rank,
@@ -380,7 +379,9 @@ def main(args):
     # set up (distributed) training
     args.device = torch.device(f"cuda:{args.local_rank}" if torch.cuda.is_available() and not args.no_cuda else "cpu")
     args.n_gpu = torch.cuda.device_count()
-        
+
+    if args.local_rank == 0:        
+        torch.cuda.memory._record_memory_history()
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
     os.environ['MASTER_ADDR'] = args.master_addr
     os.environ['MASTER_PORT'] = args.master_port
@@ -457,6 +458,11 @@ def main(args):
     
     # Clean up process group
     torch.distributed.destroy_process_group()
+    
+    if args.local_rank == 0:
+        print("Training complete.")
+        print("Exiting program...")
+        torch.cuda.memory._dump_snapshot("my_snapshot.pickle")
 
 def get_date_of_run():
     """create date and time for file save uniqueness
