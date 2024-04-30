@@ -121,8 +121,9 @@ def train(args, train_dataset, model, tokenizer):
     # Print the model architecture to see how the model is sharded
     print(fsdp_model)
     
-    # Wait for usr input to continue
-    input("Press Enter to continue...")
+    if args.local_rank == 0:
+        # Wait for usr input to continue
+        input("Press Enter to continue...")
     
     fsdp_model.to(args.local_rank)
     
