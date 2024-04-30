@@ -122,6 +122,8 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         },
     )
     
+    torch.cuda.set_device(args.local_rank)
+    
     fsdp_model = FSDP(
         model,
         cpu_offload=CPUOffload(True),
@@ -131,7 +133,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         # device_id=args.local_rank,
         # sync_module_states=True,
     )
-    
+
     # Print the model architecture to see how the model is sharded
     print(fsdp_model)
     
@@ -147,7 +149,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         {'params': [p for n, p in fsdp_model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
         {'params': [p for n, p in fsdp_model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
+    optimizer = AdamW(fsdp_model.parameters(), lr=args.learning_rate, eps=args.adam_epsilon)
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
     if args.fp16:
         try:
@@ -386,7 +388,6 @@ def main(args):
 
     print("Initializing distributed training...")
     torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="nccl", timeout=timedelta(seconds=60))
-    torch.cuda.set_device(args.local_rank)
     
 
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
