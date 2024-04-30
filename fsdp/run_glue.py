@@ -122,6 +122,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             BertAttention,
             BertIntermediate,
             BertOutput,
+            BertEncoder,
         },
     )
     
