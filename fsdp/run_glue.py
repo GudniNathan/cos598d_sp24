@@ -106,7 +106,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
                   'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
                   'labels':         batch[3]}
         output = model(**inputs)
-        loss = output["loss"]
+        loss = output[0] # model outputs are always tuple in pytorch-transformers (see doc)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
         optimizer.step()
@@ -209,6 +209,20 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         # Deal with distributed training
         torch.distributed.barrier()
         t0 = time.time()
+        for step, batch in enumerate(epoch_iterator):
+            # Want to report the average time per iteration, discarding the first iteration
+            print("Step", step)
+            iteration_time = time.time()
+
+            fsdp_model.train()
+            batch = tuple(t.to(args.device) for t in batch)
+            inputs = {'input_ids':      batch[0],
+                      'attention_mask': batch[1],
+                      'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
+                      'labels':         batch[3]}
+            outputs = fsdp_model(**inputs)
+            loss = outputs[0]  # model outputs are always tuple in pytorch-transformers (see doc)
+
         train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
         if args.run_validation:
             curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
