@@ -118,10 +118,10 @@ def train(args, train_dataset, model, tokenizer):
         model,
         cpu_offload=CPUOffload(True),
         auto_wrap_policy=my_auto_wrap_policy,
-        # backward_prefetch=BackwardPrefetch.BACKWARD_POST,
-        # sharding_strategy=ShardingStrategy.SHARD_GRAD_OP,
+        backward_prefetch=BackwardPrefetch.BACKWARD_POST,
+        sharding_strategy=ShardingStrategy.SHARD_GRAD_OP,
         device_id=args.local_rank,
-        # sync_module_states=True,
+        sync_module_states=True,
     )
     
     # Print the model architecture to see how the model is sharded
