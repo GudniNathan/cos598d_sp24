@@ -90,9 +90,6 @@ def set_seed(args):
 
 def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None):
     # model.train()
-    local_rank = int(os.environ['LOCAL_RANK'])
-    fsdp_loss = torch.zeros(2).to(local_rank)
-
     epoch_iterator = tqdm(train_loader, desc="Iteration", disable=args.local_rank not in [-1, 0])
     print("Starting training...")
     print("Starting training...")
