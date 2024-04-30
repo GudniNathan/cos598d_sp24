@@ -100,7 +100,6 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
             range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
         )
     for batch in train_loader:
-        print(batch)
         batch = tuple(t.to(args.device) for t in batch)
         inputs = {'input_ids':      batch[0],
                   'attention_mask': batch[1],
