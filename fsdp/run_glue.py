@@ -468,7 +468,7 @@ def main(args):
         print("Training complete.")
         print("Exiting program...")
         filename="dump_snapshot.pickle"
-        snap = torch.cuda.memory.memory_snapshot()
+        snap = torch.cuda.memory._snapshot()
         import pickle
         with open(filename, "wb") as f:
             pickle.dump(snap, f)
