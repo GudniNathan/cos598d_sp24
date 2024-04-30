@@ -386,7 +386,7 @@ def main(args):
     args.n_gpu = torch.cuda.device_count()
 
     if args.local_rank == 0:        
-        torch.cuda.memory._record_memory_history(enabled=True)
+        torch.cuda.memory._record_memory_history(enabled='all', context='all', stacks='all', max_entries=9223372036854775807)
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
     os.environ['MASTER_ADDR'] = args.master_addr
     os.environ['MASTER_PORT'] = args.master_port
