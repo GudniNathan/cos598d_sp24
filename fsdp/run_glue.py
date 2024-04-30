@@ -108,7 +108,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         #for i, tensor in enumerate(batch):
         #    batch[i] = tensor.to(local_rank)
         optimizer.zero_grad()
-        output = model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, labels=labels)
+        output = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
         loss = output["loss"]
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
