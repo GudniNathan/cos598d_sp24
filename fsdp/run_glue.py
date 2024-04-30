@@ -135,7 +135,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             sync_module_states=True,
         )
     else:
-        model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank)
+        model = DDP(model)
 
     # Print the model architecture to see how the model is sharded
     print(model)
