@@ -196,6 +196,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         if args.do_eval:
             curr_val_loss = validation(fsdp_model, args.local_rank, args.world_size, eval_dataloader)
         scheduler.step()
+        global_step += 1
         
         if args.local_rank == 0:
 
