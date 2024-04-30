@@ -551,6 +551,8 @@ if __name__ == "__main__":
     # Added arguments
     parser.add_argument('--track_memory', action='store_false', default=True,
                         help='track the gpu memory')
+    parser.add_argument('--save-model', action='store_false', default=False,
+                        help='For Saving the current Model')
     args = parser.parse_args()
     args.eval_batch_size = args.per_gpu_eval_batch_size
 
