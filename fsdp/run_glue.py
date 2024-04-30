@@ -100,11 +100,8 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
             range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
         )
     for batch in train_loader:
-        print(batch)
-        for i, tensor in enumerate(batch):
-            batch[i] = tensor.to(local_rank)
         optimizer.zero_grad()
-        output = model(input_ids=batch[0],attention_mask=batch[1],token_type_ids=batch[2],labels=batch[3])
+        output = model(input_ids=batch[0].to(local_rank),attention_mask=batch[1].to(local_rank),token_type_ids=batch[2].to(local_rank),labels=batch[3].to(local_rank))
         loss = output["loss"]
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
