@@ -209,7 +209,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         # Deal with distributed training
         torch.distributed.barrier()
         t0 = time.time()
-        for step, batch in enumerate(epoch_iterator):
+        for step, batch in enumerate(train_dataloader):
             # Want to report the average time per iteration, discarding the first iteration
             iteration_time = time.time()
 
