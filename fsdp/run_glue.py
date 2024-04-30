@@ -117,7 +117,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     my_auto_wrap_policy = functools.partial(
         transformer_auto_wrap_policy,
         transformer_layer_cls={
-            # BertEncoder,
+            BertEncoder,
             # BertLayer,
         },
     )
