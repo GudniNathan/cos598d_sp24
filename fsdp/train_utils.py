@@ -87,7 +87,7 @@ def validation(model, rank, world_size, val_loader):
                     'token_type_ids': batch[2],  # XLM don't use segment_ids
                     'labels':         batch[3]}
             output = model(**inputs)
-            fsdp_loss[0] += output["loss"].item()  # sum up batch loss
+            fsdp_loss[0] += output[0].item()  # sum up batch loss
             fsdp_loss[1] += len(batch)
 
             if rank==0:
