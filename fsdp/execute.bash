@@ -19,5 +19,5 @@ torchrun --nnodes 1 --nproc_per_node 4 run_glue.py \
   --output_dir /tmp/RTE/ \
   --overwrite_output_dir \
   --master_addr $MASTER_ADDR \
-  --master_port $MASTER_PORT \
+  --master_port 8001 \
   --world_size 4
