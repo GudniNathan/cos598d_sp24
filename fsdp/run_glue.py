@@ -96,7 +96,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
     if sampler:
         sampler.set_epoch(epoch)
     if rank==0:
-        inner_pbar = tqdm.tqdm(
+        inner_pbar = tqdm(
             range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
         )
     for batch in train_loader:
@@ -294,7 +294,7 @@ def validation(model, rank, world_size, val_loader):
     local_rank = int(os.environ['LOCAL_RANK'])
     fsdp_loss = torch.zeros(3).to(local_rank)
     if rank == 0:
-        inner_pbar = tqdm.tqdm(
+        inner_pbar = tqdm(
             range(len(val_loader)), colour="green", desc="Validation Epoch"
         )
     with torch.no_grad():
