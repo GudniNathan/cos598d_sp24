@@ -125,7 +125,7 @@ def train(args, train_dataset, model, tokenizer):
         # Wait for usr input to continue
         input("Press Enter to continue...")
     
-    fsdp_model.to(args.local_rank)
+    # fsdp_model.to(args.local_rank)
     
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ['bias', 'LayerNorm.weight']
