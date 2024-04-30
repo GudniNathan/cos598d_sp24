@@ -278,7 +278,7 @@ def evaluate(args, model, tokenizer, prefix=""):
         nb_eval_steps = 0
         preds = None
         out_label_ids = None
-        for batch in tqdm(eval_dataloader, desc="Evaluating"):
+        for batch in tqdm.tqdm(eval_dataloader, desc="Evaluating"):
             model.eval()
             batch = tuple(t.to(args.device) for t in batch)
 
