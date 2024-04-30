@@ -207,6 +207,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
     for epoch in train_iterator:
         # Deal with distributed training
+        torch.distributed.barrier()
         t0 = time.time()
         train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
         if args.run_validation:
