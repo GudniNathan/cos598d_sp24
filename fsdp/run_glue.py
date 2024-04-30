@@ -106,6 +106,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         output = model(input_ids=batch["source_ids"],attention_mask=batch["source_mask"],labels=batch["target_ids"] )
         loss = output["loss"]
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
         optimizer.step()
         fsdp_loss[0] += loss.item()
         fsdp_loss[1] += len(batch)
@@ -124,7 +125,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
     return train_accuracy
     
 
-def train_main(args, train_dataset, model, tokenizer):
+def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     """ Train the model """
     
     print("Starting training...")
@@ -133,6 +134,9 @@ def train_main(args, train_dataset, model, tokenizer):
     train_sampler = DistributedSampler(train_dataset, num_replicas=args.world_size, rank=args.local_rank)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size,
                                   num_workers=args.world_size, pin_memory=True, shuffle=False)
+    
+    eval_sampler = SequentialSampler(eval_dataset)
+    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
     if args.max_steps > 0:
         t_total = args.max_steps
@@ -148,7 +152,6 @@ def train_main(args, train_dataset, model, tokenizer):
             BertLayer,
         },
     )
-    always_wrap = lambda module, *args, **kwargs: True
     
     fsdp_model = FSDP(
         model,
@@ -205,62 +208,10 @@ def train_main(args, train_dataset, model, tokenizer):
         t0 = time.time()
         train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
         if args.run_validation:
-            curr_val_loss = validation(model, rank, world_size, val_loader)
+            curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
         scheduler.step()
         print("Epoch", epoch, "started.") 
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
-        for step, batch in enumerate(epoch_iterator):
-            # Want to report the average time per iteration, discarding the first iteration
-            iteration_time = time.time()
-
-            fsdp_model.train()
-            batch = tuple(t.to(args.device) for t in batch)
-            inputs = {'input_ids':      batch[0],
-                      'attention_mask': batch[1],
-                      'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
-                      'labels':         batch[3]}
-            outputs = fsdp_model(**inputs)
-            loss = outputs[0]  # model outputs are always tuple in pytorch-transformers (see doc)
-
-            if args.gradient_accumulation_steps > 1:
-                loss = loss / args.gradient_accumulation_steps
-
-            if args.fp16:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-                torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
-            else:
-                ##################################################
-                # TODO(cos598d): perform backward pass here
-                loss.backward()
-                ##################################################
-                torch.nn.utils.clip_grad_norm_(fsdp_model.parameters(), args.max_grad_norm)
-
-
-            tr_loss += loss.item()
-            if (step + 1) % args.gradient_accumulation_steps == 0:
-                ##################################################
-                # TODO(cos598d): perform a single optimization step (parameter update) by invoking the optimizer
-                # logger.info("Optimizing...")
-                optimizer.step()
-                scheduler.step()  # Update learning rate schedule
-                # logger.info("Optimization step done.")
-                ##################################################
-                fsdp_model.zero_grad()
-                global_step += 1
-            
-            # Record the loss values of the first five minibatches 
-            # by printing the loss value after every iteration
-            if global_step <= 5:
-                logger.info(" \tLoss value at iteration %d: %f", global_step, tr_loss)
-            if 1 < global_step <= 40:
-                total_iteration_time += time.time() - iteration_time
-                average_elapsed_time = total_iteration_time / (global_step - 1)
-                print(" \tAverage elapsed time per iteration:", f"{average_elapsed_time:.4f}", "at iteration ", global_step)
-
-            if args.max_steps > 0 and global_step > args.max_steps:
-                epoch_iterator.close()
-                break
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
             break
@@ -490,7 +441,9 @@ def main(args):
     # Training
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
-        global_step, tr_loss, model = train_main(args, train_dataset, model, tokenizer)
+        eval_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=True)
+
+        global_step, tr_loss, model = fsdp_main(args, train_dataset, eval_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
     else:
         model.to(args.device)
