@@ -533,5 +533,6 @@ if __name__ == "__main__":
     parser.add_argument('--world_size', type=int, default=4, required=True, 
                         help='Number of processes participating in distributed training')
     args = parser.parse_args()
+    args.eval_batch_size = args.per_gpu_eval_batch_size
 
     main(args)
