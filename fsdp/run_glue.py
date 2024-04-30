@@ -547,6 +547,10 @@ if __name__ == "__main__":
                         help='Master port for distributed training')
     parser.add_argument('--world_size', type=int, default=4, required=True, 
                         help='Number of processes participating in distributed training')
+    
+    # Added arguments
+    parser.add_argument('--track_memory', action='store_false', default=True,
+                        help='track the gpu memory')
     args = parser.parse_args()
     args.eval_batch_size = args.per_gpu_eval_batch_size
 

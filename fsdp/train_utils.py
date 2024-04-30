@@ -3,7 +3,7 @@ import torch
 import torch.distributed as dist
 from datetime import datetime
 import tqdm
-from pytorch_transformers import BertTokenizer, BertForSequenceClassification
+from pytorch_transformers import BertTokenizer, BertForMaskedLM
 
 g_gigabyte = 1024**3
 
@@ -102,6 +102,6 @@ def validation(model, rank, world_size, val_loader):
 
 
 def setup_model(model_name):
-        model = BertForSequenceClassification.from_pretrained(model_name)
+        model = BertForMaskedLM.from_pretrained(model_name)
         tokenizer =  BertTokenizer.from_pretrained(model_name)
         return model, tokenizer
