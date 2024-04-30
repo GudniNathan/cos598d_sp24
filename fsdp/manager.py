@@ -1,6 +1,7 @@
 import subprocess
 
 def main():
+    subprocess.run(["git", "pull"])
     processes = []
     for i in range(1, 4):
         p = subprocess.Popen(
