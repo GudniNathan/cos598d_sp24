@@ -104,8 +104,8 @@ def train(args, train_dataset, model, tokenizer):
 
     # Initialize the FSDP policy
     my_auto_wrap_policy = functools.partial(
-        size_based_auto_wrap_policy,
-        min_num_params=10,
+        transformer_auto_wrap_policy,
+        transformer_layer_cls=(model.bert.encoder.layer.__class__,),
     )
     always_wrap = lambda module, *args, **kwargs: True
     
