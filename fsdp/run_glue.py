@@ -109,7 +109,6 @@ def train(args, train_dataset, model, tokenizer):
         transformer_auto_wrap_policy,
         transformer_layer_cls={
             BertEncoder,
-            BertLayer,
         },
     )
     always_wrap = lambda module, *args, **kwargs: True
