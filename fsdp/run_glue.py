@@ -100,6 +100,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
             range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
         )
     for batch in train_loader:
+        print(batch)
         for key in batch.keys():
             batch[key] = batch[key].to(local_rank)
         optimizer.zero_grad()
