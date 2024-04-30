@@ -118,6 +118,9 @@ def train(args, train_dataset, model, tokenizer):
         sync_module_states=True,
     )
     
+    # Print the model architecture to see how the model is sharded
+    print(fsdp_model)
+    
     fsdp_model.to(args.local_rank)
     
     # Prepare optimizer and schedule (linear warmup and decay)
