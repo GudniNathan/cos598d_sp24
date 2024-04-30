@@ -100,6 +100,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
             range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
         )
     epoch_iterator = tqdm(train_loader, desc="Iteration", disable=args.local_rank not in [-1, 0])
+    print("Starting training...")
     for step, batch in enumerate(epoch_iterator):
         # Want to report the average time per iteration, discarding the first iteration
         print("Step", step)
