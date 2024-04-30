@@ -202,7 +202,6 @@ def train_main(args, train_dataset, model, tokenizer):
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
     for epoch in train_iterator:
         # Deal with distributed training
-        torch.distributed.barrier()
         print("Epoch", epoch, "started.") 
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
@@ -265,6 +264,7 @@ def train_main(args, train_dataset, model, tokenizer):
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         # evaluate(args, fsdp_model, tokenizer)
         ##################################################
+    torch.distributed.barrier()
 
     return global_step, tr_loss / global_step, fsdp_model
 
