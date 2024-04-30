@@ -1,5 +1,5 @@
 {
-    "emeraldwalk.runonsave": {
+    /*"emeraldwalk.runonsave": {
         "commands": [
             {
                 "match": ".*",
@@ -7,5 +7,5 @@
                 "cmd": "git commit -a -m \"vscode autosave\" && git push --all --force",
             },
         ]
-    }
+    }*/
 }
