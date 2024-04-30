@@ -106,7 +106,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
                   'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
                   'labels':         batch[3]}
         output = model(**inputs)
-        loss = output["loss"]
+        loss = output[0]
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
         optimizer.step()
