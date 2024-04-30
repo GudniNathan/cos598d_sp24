@@ -217,6 +217,8 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
                 mem_reserved_tracker.append(
                     format_metrics_to_gb(torch.cuda.memory_reserved())
                 )
+                print("memory allocated:", mem_alloc_tracker[-1])
+                print("memory reserved:", mem_reserved_tracker[-1])
             print(f"completed save and stats zone...")
         
         if args.save_model and curr_val_loss < best_val_loss:
