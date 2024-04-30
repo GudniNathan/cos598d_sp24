@@ -48,6 +48,7 @@ from pytorch_transformers import (WEIGHTS_NAME, BertConfig,
                                   XLNetTokenizer)
 
 from pytorch_transformers import AdamW, WarmupLinearSchedule
+from pytorch_transformers.modeling_bert import BertEncoder
 
 from utils_glue import (compute_metrics, convert_examples_to_features,
                         output_modes, processors)
@@ -105,7 +106,9 @@ def train(args, train_dataset, model, tokenizer):
     # Initialize the FSDP policy
     my_auto_wrap_policy = functools.partial(
         transformer_auto_wrap_policy,
-        transformer_layer_cls=(model.bert.encoder.layer.__class__,),
+        transformer_layer_cls={
+            BertEncoder
+        },
     )
     always_wrap = lambda module, *args, **kwargs: True
     
