@@ -193,7 +193,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         t0 = time.time()
 
         train_accuracy = train(args, fsdp_model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
-        if args.run_validation:
+        if args.do_eval:
             curr_val_loss = validation(fsdp_model, args.local_rank, args.world_size, eval_dataloader)
         scheduler.step()
         
@@ -204,7 +204,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             dur.append(time.time() - t0)
             train_acc_tracking.append(train_accuracy.item())
 
-            if args.run_validation:
+            if args.do_eval:
                 val_acc_tracking.append(curr_val_loss.item())
 
             if args.track_memory:
