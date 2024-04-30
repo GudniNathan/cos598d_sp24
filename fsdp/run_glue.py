@@ -124,18 +124,18 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     
     torch.cuda.set_device(args.local_rank)
     
-    fsdp_model = FSDP(
+    model = FSDP(
         model,
         cpu_offload=CPUOffload(True),
         auto_wrap_policy=my_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.BACKWARD_POST,
         sharding_strategy=ShardingStrategy.FULL_SHARD,
-        # device_id=args.local_rank,
-        # sync_module_states=True,
+        device_id=args.local_rank,
+        sync_module_states=True,
     )
 
     # Print the model architecture to see how the model is sharded
-    print(fsdp_model)
+    print(model)
     
     #if args.local_rank == 0:
     #    # Wait for usr input to continue
@@ -146,10 +146,10 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ['bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
-        {'params': [p for n, p in fsdp_model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
-        {'params': [p for n, p in fsdp_model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
+        {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-    optimizer = AdamW(fsdp_model.parameters(), lr=args.learning_rate, eps=args.adam_epsilon)
+    optimizer = AdamW(model.parameters(), lr=args.learning_rate, eps=args.adam_epsilon)
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
     if args.fp16:
         try:
@@ -185,7 +185,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     curr_val_loss = float("inf")
     file_save_name = f"{args.model_type}-{args.task_name}-model-"
     total_iteration_time = 0
-    fsdp_model.zero_grad()
+    model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
     for epoch in train_iterator:
@@ -194,9 +194,9 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         torch.distributed.barrier()
         t0 = time.time()
 
-        train_accuracy = train(args, fsdp_model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
+        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
         if args.do_eval:
-            curr_val_loss = validation(fsdp_model, args.local_rank, args.world_size, eval_dataloader)
+            curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
         scheduler.step()
         global_step += 1
         
@@ -228,9 +228,9 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
 
             save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
             with FSDP.state_dict_type(
-                fsdp_model, StateDictType.FULL_STATE_DICT, save_policy
+                model, StateDictType.FULL_STATE_DICT, save_policy
             ):
-                cpu_state = fsdp_model.state_dict()
+                cpu_state = model.state_dict()
             #print(f"saving process: rank {rank}  done w state_dict")
 
 
@@ -254,7 +254,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         ##################################################
     torch.distributed.barrier()
 
-    return global_step, tr_loss / global_step, fsdp_model
+    return global_step, tr_loss / global_step, model
 
 
 def evaluate(args, model, tokenizer, prefix=""):
@@ -374,7 +374,6 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
 
 def main(args):
     args.local_rank = int(os.environ.get('LOCAL_RANK', args.local_rank))
-    print("Starting with rank", args.local_rank)
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
 
