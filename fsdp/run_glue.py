@@ -116,7 +116,7 @@ def train(args, train_dataset, model, tokenizer):
     
     fsdp_model = FSDP(
         model,
-        cpu_offload=CPUOffload(True),
+        cpu_offload=CPUOffload(False),
         auto_wrap_policy=my_auto_wrap_policy,
         backward_prefetch=BackwardPrefetch.BACKWARD_POST,
         sharding_strategy=ShardingStrategy.SHARD_GRAD_OP,
@@ -199,11 +199,11 @@ def train(args, train_dataset, model, tokenizer):
 
             tr_loss += loss.item()
             if (step + 1) % args.gradient_accumulation_steps == 0:
-                scheduler.step()  # Update learning rate schedule
                 ##################################################
                 # TODO(cos598d): perform a single optimization step (parameter update) by invoking the optimizer
                 # logger.info("Optimizing...")
                 optimizer.step()
+                scheduler.step()  # Update learning rate schedule
                 # logger.info("Optimization step done.")
                 ##################################################
                 fsdp_model.zero_grad()
