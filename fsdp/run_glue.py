@@ -89,7 +89,7 @@ def set_seed(args):
 
 
 def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None):
-    # model.train()
+    model.train()
     local_rank = int(os.environ['LOCAL_RANK'])
     fsdp_loss = torch.zeros(2).to(local_rank)
 
@@ -210,7 +210,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         torch.distributed.barrier()
         t0 = time.time()
 
-        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
+        train_accuracy = train(args, fsdp_model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
         if args.run_validation:
             curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
         scheduler.step()
