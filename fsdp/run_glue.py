@@ -215,7 +215,7 @@ def train(args, train_dataset, model, tokenizer):
         evaluate(args, fsdp_model, tokenizer)
         ##################################################
 
-    return global_step, tr_loss / global_step
+    return global_step, tr_loss / global_step, fsdp_model
 
 
 def evaluate(args, model, tokenizer, prefix=""):
@@ -489,7 +489,7 @@ def main():
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 
-    model.to(args.device) 
+    model.to(args.device)
 
     # Evaluation
     evaluate(args, model, tokenizer, prefix="")
