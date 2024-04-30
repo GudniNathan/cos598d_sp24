@@ -299,6 +299,7 @@ def validation(model, rank, world_size, val_loader):
         )
     with torch.no_grad():
         for batch in val_loader:
+            print(batch)
             for key in batch.keys():
                 batch[key] = batch[key].to(local_rank)
             output = model(input_ids=batch["source_ids"],attention_mask=batch["source_mask"],labels=batch["target_ids"])
