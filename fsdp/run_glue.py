@@ -348,7 +348,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     return dataset
 
 
-def main():
+def main(args):
 
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
@@ -434,7 +434,7 @@ def main():
     torch.distributed.destroy_process_group()
 
 if __name__ == "__main__":
-        print("Starting program...")
+    print("Starting program...")
     parser = argparse.ArgumentParser()
 
     ## Required parameters
