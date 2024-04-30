@@ -89,7 +89,7 @@ def set_seed(args):
 
 
 def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None):
-    model.train()
+    # model.train()
     local_rank = int(os.environ['LOCAL_RANK'])
     fsdp_loss = torch.zeros(2).to(local_rank)
 
