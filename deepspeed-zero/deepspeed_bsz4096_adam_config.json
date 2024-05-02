@@ -18,7 +18,6 @@
       "initial_scale_power": 16
     },
     "zero_optimization": {
-        "stage": 1,
-        "reduce_bucket_size": 5e8
+        "stage": 3
     }
 }
