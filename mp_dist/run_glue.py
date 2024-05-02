@@ -445,7 +445,7 @@ def main(args):
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
-
+    return
     # torch.distributed.init_process_group(backend='nccl')
 
 

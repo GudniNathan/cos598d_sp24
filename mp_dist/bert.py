@@ -20,10 +20,14 @@ import torch.distributed
 # Except it uses BertModelMP instead of BertModel.
 class BertForSequenceClassificationMP(BertForSequenceClassification):
     def __init__(self, config):
-        super().__init__(config)
+        super(BertForSequenceClassification, self).__init__(config)
+        self.num_labels = config.num_labels
+        
         self.bert = BertModelMP(config)
-        self.dropout = self.dropout
-        self.classifier = self.classifier
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
+
+        self.init_weights()
 
         
 # Model parallel version of BertModel, uses BertEncoderMP
