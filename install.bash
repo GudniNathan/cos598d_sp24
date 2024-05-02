@@ -2,6 +2,9 @@ apt-get update
 apt-get -y install htop dstat python3-pip
 apt-get -y install libaio-dev
 
+pip3 uninstall triton
+pip3 install triton=1.0.0
+
 # Install PyTorch and other dependencies
 pip3 uninstall --y torch torchvision torchaudio clean-fid xformers
 pip3 install torch torchvision torchaudio clean-fid xformers
