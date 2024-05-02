@@ -69,6 +69,10 @@ from torch.distributed.fsdp.wrap import (
     wrap,
 )
 
+from bert import BertForSequenceClassificationMP, BertArgs
+
+import deepspeed
+
 # import FullStateDictConfig
 from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 
@@ -79,12 +83,11 @@ logger = logging.getLogger(__name__)
 ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig, RobertaConfig)), ())
 
 MODEL_CLASSES = {
-    'bert': (BertConfig, BertForSequenceClassification, BertTokenizer),
+    'bert': (BertConfig, BertForSequenceClassificationMP, BertTokenizer),
     'xlnet': (XLNetConfig, XLNetForSequenceClassification, XLNetTokenizer),
     'xlm': (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
     'roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
 }
-
 
 def set_seed(args):
     random.seed(args.seed)
@@ -95,7 +98,7 @@ def set_seed(args):
     torch.cuda.manual_seed_all(args.seed)
     
 
-def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
+def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
     """ Train the model """
     
     print("Starting training...")
@@ -126,6 +129,22 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         },
     )
     
+    torch.cuda.set_device(args.local_rank)
+    
+    if True:
+        model = FSDP(
+            model,
+            cpu_offload=CPUOffload(False),
+            auto_wrap_policy=my_auto_wrap_policy,
+            backward_prefetch=BackwardPrefetch.BACKWARD_POST,
+            sharding_strategy=ShardingStrategy.FULL_SHARD,
+            device_id=args.local_rank,
+            sync_module_states=True,
+        )
+    else:
+        model.to(args.device)
+        model = DDP(model)
+
     # Print the model architecture to see how the model is sharded
     print(model)
     
@@ -133,7 +152,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     #    # Wait for usr input to continue
     #    input("Press Enter to continue...")
     
-    model = model.to(args.local_rank)
+    # fsdp_model.to(args.local_rank)
     
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ['bias', 'LayerNorm.weight']
@@ -141,7 +160,11 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
         {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-    optimizer = AdamW(model.parameters(), lr=args.learning_rate, eps=args.adam_epsilon)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
+    model.network, optimizer, _, _ = deepspeed.initialize(args=args,
+                                     model=model.network,
+                                     optimizer=optimizer,
+                                     dist_init_required=False)
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
     if args.fp16:
         try:
@@ -423,13 +446,12 @@ def main(args):
         # from_tf=bool('.ckpt' in args.model_name_or_path),
         config=config
     )
-    if args.local_rank != 0:
-        model = model.bert.encoder # only load the encoder on the other ranks
     print("Model loaded.")
     ##################################################
 
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
+
 
     # torch.distributed.init_process_group(backend='nccl')
 
@@ -442,7 +464,7 @@ def main(args):
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         eval_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=True)
 
-        global_step, tr_loss, model = fsdp_main(args, train_dataset, eval_dataset, model, tokenizer)
+        global_step, tr_loss, model = deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
     else:
         model.to(args.device)
@@ -547,7 +569,16 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
+    
+    parser = deepspeed.add_config_arguments(parser)
+    
+    parser.add_argument('--deepspeed_transformer_kernel',
+                     default=False,
+                     action='store_true',
+                     help='Use DeepSpeed transformer kernel to accelerate.')
+     
     args = parser.parse_args()
     args.eval_batch_size = args.per_gpu_eval_batch_size
+    BertArgs = args
 
     main(args)
