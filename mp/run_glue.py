@@ -168,7 +168,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     for epoch in train_iterator:
         print("Epoch", epoch, "started.") 
         # Deal with distributed training
-        torch.distributed.barrier()
+        #torch.distributed.barrier()
         t0 = time.time()
 
         train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
@@ -229,7 +229,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         # evaluate(args, fsdp_model, tokenizer)
         ##################################################
-    torch.distributed.barrier()
+    #torch.distributed.barrier()
 
     return global_step, tr_loss / global_step, model
 
@@ -298,8 +298,8 @@ def evaluate(args, model, tokenizer, prefix=""):
     return results
 
 def load_and_cache_examples(args, task, tokenizer, evaluate=False):
-    if args.local_rank not in [-1, 0]:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
+    #if args.local_rank not in [-1, 0]:
+    #    torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
 
     processor = processors[task]()
     output_mode = output_modes[task]
@@ -390,8 +390,8 @@ def main(args):
     num_labels = len(label_list)
 
     # Load pretrained model and tokenizer
-    if args.local_rank not in [-1, 0]:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
+    #if args.local_rank not in [-1, 0]:
+    #    torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
     args.model_type = args.model_type.lower()
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
@@ -409,8 +409,8 @@ def main(args):
     print("Model loaded.")
     ##################################################
 
-    if args.local_rank == 0:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
+    #if args.local_rank == 0:
+    #    torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
 
     # torch.distributed.init_process_group(backend='nccl')
