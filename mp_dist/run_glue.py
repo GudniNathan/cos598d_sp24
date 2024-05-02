@@ -439,13 +439,14 @@ def main(args):
         # from_tf=bool('.ckpt' in args.model_name_or_path),
         config=config
     )
+    if args.local_rank != 0:
+        model = model.bert.encoder # only load the encoder on the other ranks
     print("Model loaded.")
     ##################################################
 
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
-    return
     # torch.distributed.init_process_group(backend='nccl')
 
 
