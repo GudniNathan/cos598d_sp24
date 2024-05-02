@@ -51,7 +51,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         output = model(**inputs)
         loss = output[0]
         if args.deepspeed:
-            model.network.backward(loss)
+            model.backward(loss)
         else:
             if args.fp16:
                 optimizer.backward(loss)
@@ -59,7 +59,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
                 loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
         if args.deepspeed:
-            model.network.step()
+            model.step()
         else:
             optimizer.step()
             optimizer.zero_grad()
