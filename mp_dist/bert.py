@@ -22,8 +22,8 @@ class BertForSequenceClassificationMP(BertForSequenceClassification):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModelMP(config)
-        self.dropout = self.dropout.to(0)
-        self.classifier = self.classifier.to(0)
+        self.dropout = self.dropout
+        self.classifier = self.classifier
 
         
 # Model parallel version of BertModel, uses BertEncoderMP
@@ -32,59 +32,14 @@ class BertForSequenceClassificationMP(BertForSequenceClassification):
 class BertModelMP(BertModel):
     def __init__(self, config):
         super().__init__(config)
-        self.embeddings = BertEmbeddings(config).to(0)
-        self.encoder = BertEncoderMP(config)
-        self.pooler = BertPooler(config).to(0)
+        self.embeddings = BertEmbeddings(config)
+        self.encoder = BertEncoderMPDistributed(config)
+        self.pooler = BertPooler(config)
+        
+        self.init_weights()
+
 
 # Model parallel version of BertEncoder
-class BertEncoderMP(BertEncoder):
-    # Need to split the layers among the GPUs
-    # Gpu 0 gets layers 0 to 5, gpu 1 gets 6 to 11, etc.
-    def __init__(self, config):
-        super().__init__(config)
-        layers = [BertLayer(config) for _ in range(config.num_hidden_layers)]
-        gpu_count = torch.cuda.device_count()
-        layer_count = config.num_hidden_layers // gpu_count
-        
-        self.gpu_allocation = [0] * config.num_hidden_layers
-        for i, layer in enumerate(self.layer):
-            gpu = i // layer_count
-            layers[i] = layer.to(f"cuda:{gpu}")
-            self.gpu_allocation[i] = gpu
-        self.gpu_allocation.append(gpu) # For the output layer
-                
-        self.layer = nn.ModuleList(layers)
-
-
-    def forward(self, hidden_states, attention_mask, head_mask=None):
-        all_hidden_states = ()
-        all_attentions = ()
-
-        for i, layer_module in enumerate(self.layer):
-            if i > 0 and self.gpu_allocation[i] != self.gpu_allocation[i-1]:
-                hidden_states = hidden_states.to(self.gpu_allocation[i])
-                attention_mask = attention_mask.to(self.gpu_allocation[i])
-            if self.output_hidden_states:
-                all_hidden_states = all_hidden_states + (hidden_states,)
-            layer_outputs = layer_module(hidden_states, attention_mask, head_mask[i])
-            hidden_states = layer_outputs[0].to(self.gpu_allocation[i+1])
-
-            if self.output_attentions:
-                all_attentions = all_attentions + (layer_outputs[1],)
-
-        hidden_states = hidden_states.to(0)
-        # Add last layer
-        if self.output_hidden_states:
-            all_hidden_states = all_hidden_states + (hidden_states,)
-
-        outputs = (hidden_states,)
-        if self.output_hidden_states:
-            outputs = outputs + (all_hidden_states,)
-        if self.output_attentions:
-            outputs = outputs + (all_attentions,)
-            
-        return outputs  # last-layer hidden state, (all hidden states), (all attentions)
-
 class BertEncoderMPDistributed(BertEncoder):
     def __init__(self, config):
         super().__init__(config)
@@ -100,12 +55,12 @@ class BertEncoderMPDistributed(BertEncoder):
         # rank 2 will hold layers 6, 7, 8
         # rank 3 will hold layers 9, 10, 11
         self.gpu_allocation = [0] * config.num_hidden_layers
-        layer_count = config.num_hidden_layers // world_size
+        layer_count = config.num_hidden_layers // self.world_size
         layers = []
         for i in range(config.num_hidden_layers):
-            gpu = (i+1) // layer_count
+            gpu = i // layer_count
             self.gpu_allocation[i] = gpu
-            if gpu == rank:
+            if gpu == self.rank:
                 layers.append(BertLayer(config))
                 
         self.layer = nn.ModuleList(layers)

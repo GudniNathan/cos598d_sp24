@@ -34,6 +34,8 @@ class BertModelMP(BertModel):
         self.embeddings = BertEmbeddings(config).to(0)
         self.encoder = BertEncoderMP(config)
         self.pooler = BertPooler(config).to(0)
+        
+        self.init_weights()
 
 # Model parallel version of BertEncoder
 class BertEncoderMP(BertEncoder):
@@ -48,7 +50,6 @@ class BertEncoderMP(BertEncoder):
         self.gpu_allocation = [0] * config.num_hidden_layers
         for i, layer in enumerate(self.layer):
             gpu = i // layer_count
-            print(f"layer {i} to gpu {gpu}")
             layers[i] = layer.to(f"cuda:{gpu}")
             self.gpu_allocation[i] = gpu
         self.gpu_allocation.append(gpu) # For the output layer
