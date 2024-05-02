@@ -333,8 +333,6 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
             logger.info("Saving features into cached file %s", cached_features_file)
             torch.save(features, cached_features_file)
 
-    if args.local_rank == 0:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
 
     # Convert to Tensors and build dataset
     all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
@@ -350,7 +348,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
 
 
 def main(args):
-    args.local_rank = int(os.environ.get('LOCAL_RANK', args.local_rank))
+    args.local_rank = 0 #int(os.environ.get('LOCAL_RANK', args.local_rank))
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
 
