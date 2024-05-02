@@ -57,6 +57,7 @@ class BertEncoderMP(BertEncoder):
         all_attentions = ()
         # Print the devices
         hidden_state_device = hidden_states.device
+        print(f"Hidden states device: {hidden_state_device}")
         for i, layer_module in enumerate(self.layer):
             if self.output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
