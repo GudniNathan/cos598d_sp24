@@ -131,7 +131,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     if True:
         model = FSDP(
             model,
-            cpu_offload=CPUOffload(False),
+            cpu_offload=CPUOffload(True),
             auto_wrap_policy=my_auto_wrap_policy,
             backward_prefetch=BackwardPrefetch.BACKWARD_POST,
             sharding_strategy=ShardingStrategy.FULL_SHARD,
