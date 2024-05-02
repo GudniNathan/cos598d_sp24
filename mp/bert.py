@@ -21,6 +21,9 @@ class BertForSequenceClassificationMP(BertForSequenceClassification):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertModelMP(config)
+        self.dropout = self.dropout.to(0)
+        self.classifier = self.classifier.to(0)
+
         
 # Model parallel version of BertModel, uses BertEncoderMP
 # Ignores mp for the embeddings and pooler
