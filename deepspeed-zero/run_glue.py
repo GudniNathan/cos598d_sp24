@@ -31,7 +31,6 @@ from datetime import timedelta
 import numpy as np
 import torch
 import torch.distributed
-import torch.distributed.fsdp
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
@@ -55,26 +54,11 @@ from pytorch_transformers.modeling_bert import BertEncoder, BertLayer, BertAtten
 from utils_glue import (compute_metrics, convert_examples_to_features,
                         output_modes, processors)
 
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp import ShardingStrategy
-from torch.distributed.fsdp.fully_sharded_data_parallel import (
-    CPUOffload,
-    BackwardPrefetch,
-)
-from torch.distributed.fsdp.wrap import (
-    size_based_auto_wrap_policy,
-    transformer_auto_wrap_policy,
-    enable_wrap,
-    wrap,
-)
 
 from bert import BertForSequenceClassificationMP, BertArgs
 
 import deepspeed
 
-# import FullStateDictConfig
-from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 
 from train_utils import *
 
@@ -116,34 +100,6 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
         args.num_train_epochs = args.max_steps // (len(train_dataloader) // args.gradient_accumulation_steps) + 1
     else:
         t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
-
-    # Initialize the FSDP policy
-    my_auto_wrap_policy = functools.partial(
-        transformer_auto_wrap_policy,
-        transformer_layer_cls={
-            BertLayer,
-            BertAttention,
-            BertIntermediate,
-            BertOutput,
-            BertEncoder,
-        },
-    )
-    
-    torch.cuda.set_device(args.local_rank)
-    
-    if True:
-        model = FSDP(
-            model,
-            cpu_offload=CPUOffload(False),
-            auto_wrap_policy=my_auto_wrap_policy,
-            backward_prefetch=BackwardPrefetch.BACKWARD_POST,
-            sharding_strategy=ShardingStrategy.FULL_SHARD,
-            device_id=args.local_rank,
-            sync_module_states=True,
-        )
-    else:
-        model.to(args.device)
-        model = DDP(model)
 
     # Print the model architecture to see how the model is sharded
     print(model)
@@ -241,11 +197,11 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
             if args.local_rank == 0:
                 print(f"--> entering save model state")
 
-            save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-            with FSDP.state_dict_type(
-                model, StateDictType.FULL_STATE_DICT, save_policy
-            ):
-                cpu_state = model.state_dict()
+            # save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
+            # with FSDP.state_dict_type(
+            #     model, StateDictType.FULL_STATE_DICT, save_policy
+            # ):
+            #     cpu_state = model.state_dict()
             #print(f"saving process: rank {rank}  done w state_dict")
 
 
@@ -258,7 +214,7 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
                 save_name = file_save_name + "-" + time_of_run + "-" + currEpoch
                 print(f"--> saving as model name {save_name}")
 
-                torch.save(cpu_state, save_name)
+                # torch.save(cpu_state, save_name)
         if args.max_steps > 0 and global_step > args.max_steps:
             train_iterator.close()
             break
