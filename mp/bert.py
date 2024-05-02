@@ -61,8 +61,8 @@ class BertEncoderMP(BertEncoder):
         attention_mask_device = attention_mask.device
         print(f"Attention mask device: {attention_mask_device}")
         if head_mask is not None:
-            head_mask_device = head_mask.device
-            print(f"Head mask device: {head_mask_device}")
+            for item in head_mask:
+                print(f"Head mask item device: {item.device}")
         for i, layer_module in enumerate(self.layer):
             if self.output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
