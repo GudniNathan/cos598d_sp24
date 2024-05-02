@@ -73,13 +73,14 @@ from torch.distributed.fsdp.wrap import (
 from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 
 from train_utils import *
+from bert import BertForSequenceClassificationMP
 
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig, RobertaConfig)), ())
 
 MODEL_CLASSES = {
-    'bert': (BertConfig, BertForSequenceClassification, BertTokenizer),
+    'bert': (BertConfig, BertForSequenceClassificationMP, BertTokenizer),
     'xlnet': (XLNetConfig, XLNetForSequenceClassification, XLNetTokenizer),
     'xlm': (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
     'roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
