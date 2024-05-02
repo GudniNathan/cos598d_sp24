@@ -126,7 +126,6 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         },
     )
     
-    torch.cuda.set_device(args.local_rank)
     
     if True:
         model = FSDP(
@@ -138,6 +137,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             # device_id=args.local_rank,
             # sync_module_states=True,
         )
+        torch.cuda.set_device(args.local_rank)
     else:
         model.to(args.device)
         model = DDP(model)
