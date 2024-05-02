@@ -12,7 +12,7 @@
       }
     },
     "fp16": {
-      "enabled": true,
+      "enabled": false,
       "loss_scale": 0,
       "initial_scale_power": 16
     }
