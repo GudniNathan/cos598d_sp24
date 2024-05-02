@@ -60,14 +60,11 @@ class BertEncoderMPDistributed(BertEncoder):
         # rank 3 will hold layers 9, 10, 11
         self.gpu_allocation = [0] * config.num_hidden_layers
         layer_count = config.num_hidden_layers // self.world_size
-        layers = []
         for i in range(config.num_hidden_layers):
             gpu = i // layer_count
             self.gpu_allocation[i] = gpu
-            if gpu == self.rank:
-                layers.append(BertLayer(config))
                 
-        self.layer = nn.ModuleList(layers)
+        self.layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
 
     def forward(self, hidden_states, attention_mask, head_mask=None):
         all_hidden_states = ()
@@ -77,6 +74,10 @@ class BertEncoderMPDistributed(BertEncoder):
             torch.distributed.recv(tensor=hidden_states, src=self.rank-1)
         
         for i, layer_module in enumerate(self.layer):
+            if self.gpu_allocation[i] != self.rank: 
+                # If the layer is not assigned to this rank, skip it
+                continue
+            
             if self.output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
 
