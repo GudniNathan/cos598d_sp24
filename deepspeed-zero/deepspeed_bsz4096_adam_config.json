@@ -15,5 +15,8 @@
       "enabled": false,
       "loss_scale": 0,
       "initial_scale_power": 16
+    },
+    "zero_optimization": {
+        "stage": 3
     }
 }
