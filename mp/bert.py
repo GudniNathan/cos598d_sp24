@@ -87,6 +87,7 @@ class BertEncoderMP(BertEncoder):
             outputs = outputs + (all_attentions,)
             
         print("Returning outputs")
+        outputs[0] = outputs[0].to(0)
         return outputs  # last-layer hidden state, (all hidden states), (all attentions)
 
             
