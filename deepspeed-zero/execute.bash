@@ -8,6 +8,7 @@ deepspeed --num_nodes 4  \
   run_glue.py \
   --deepspeed \
   --deepspeed_config  deepspeed_bsz4096_adam_config.json \
+  --hostfile=hostfile \
   --model_type bert \
   --model_name_or_path bert-base-cased \
   --task_name RTE \
