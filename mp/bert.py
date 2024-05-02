@@ -23,6 +23,10 @@ class BertForSequenceClassificationMP(BertForSequenceClassification):
         self.num_labels = config.num_labels
         
         self.bert = BertModelMP(config)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.classifier = nn.Linear(config.hidden_size, self.config.num_labels)
+
+        # Move dropout and classifier to the GPU 0
         self.dropout = self.dropout.to(0)
         self.classifier = self.classifier.to(0)
         
