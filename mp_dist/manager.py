@@ -13,8 +13,8 @@ def main():
                 "LOCAL_RANK": f"{i}",
                 "HOME": "/workspace"
             },
-            stdout=subprocess.DEVNULL, # suppress output
-            stderr=subprocess.DEVNULL
+            #stdout=subprocess.DEVNULL, # suppress output
+            #stderr=subprocess.DEVNULL
         )
         processes.append(p)
     
