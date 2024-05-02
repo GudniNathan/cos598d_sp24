@@ -5,11 +5,20 @@
     "steps_per_print": 1000,
     "gradient_clipping": 1.0,
     "optimizer": {
-        "type": "Adam",
+        "type": "AdamW",
         "params": {
-            "lr": 2e-4,
-            "weight_decay": 0.01,
-            "bias_correction": false
+            "lr": "auto",
+            "betas": "auto",
+            "eps": "auto",
+            "weight_decay": "auto"
+        }
+    },
+    "scheduler": {
+        "type": "WarmupLR",
+        "params": {
+            "warmup_min_lr": "auto",
+            "warmup_max_lr": "auto",
+            "warmup_num_steps": "auto"
         }
     },
     "fp16": {
