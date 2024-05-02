@@ -64,7 +64,8 @@ class BertEncoderMP(BertEncoder):
             print(i)
             if self.output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
-
+            layer_module_device = layer_module.device
+            print(f"Layer module device: {layer_module_device}")
             layer_outputs = layer_module(hidden_states, attention_mask, head_mask[i])
             hidden_states = layer_outputs[0].to(self.gpu_allocation[i+1])
 
