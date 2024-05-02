@@ -2,6 +2,9 @@ apt-get update
 apt-get -y install htop dstat python3-pip
 
 # Install PyTorch and other dependencies
+pip3 uninstall --y torch torchvision torchaudio clean-fid xformers
+pip3 install torch torchvision torchaudio clean-fid xformers
+
 pip3 install torch torchvision
 pip3 install tqdm boto3 requests regex sentencepiece sacremoses
 pip3 install pytorch-transformers 
