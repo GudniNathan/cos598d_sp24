@@ -10,6 +10,7 @@ pip3 install tqdm boto3 requests regex sentencepiece sacremoses
 pip3 install pytorch-transformers 
 pip3 install scipy
 pip3 install scikit-learn
+pip3 install deepspeed
 
 # Download the GLUE data
 cd $HOME
