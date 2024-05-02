@@ -125,7 +125,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             # BertEncoder,
         },
     )
-    
+    model.to(args.device)
     torch.cuda.set_device(args.local_rank)
     
     if True:
