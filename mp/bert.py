@@ -19,10 +19,14 @@ import torch
 # Except it uses BertModelMP instead of BertModel.
 class BertForSequenceClassificationMP(BertForSequenceClassification):
     def __init__(self, config):
-        super().__init__(config)
+        super(BertForSequenceClassification, self).__init__(config)
+        self.num_labels = config.num_labels
+        
         self.bert = BertModelMP(config)
         self.dropout = self.dropout.to(0)
         self.classifier = self.classifier.to(0)
+        
+        self.init_weights()
 
         
 # Model parallel version of BertModel, uses BertEncoderMP
@@ -30,7 +34,7 @@ class BertForSequenceClassificationMP(BertForSequenceClassification):
 # Because they are small and can be replicated.
 class BertModelMP(BertModel):
     def __init__(self, config):
-        super().__init__(config)
+        super(BertModel, self).__init__(config)
         self.embeddings = BertEmbeddings(config).to(0)
         self.encoder = BertEncoderMP(config)
         self.pooler = BertPooler(config).to(0)
@@ -42,7 +46,11 @@ class BertEncoderMP(BertEncoder):
     # Need to split the layers among the GPUs
     # Gpu 0 gets layers 0 to 5, gpu 1 gets 6 to 11, etc.
     def __init__(self, config):
-        super().__init__(config)
+        super(BertEncoder, self).__init__()
+        self.output_attentions = config.output_attentions
+        self.output_hidden_states = config.output_hidden_states
+
+        # Set up the layers
         layers = [BertLayer(config) for _ in range(config.num_hidden_layers)]
         gpu_count = torch.cuda.device_count()
         layer_count = config.num_hidden_layers // gpu_count
