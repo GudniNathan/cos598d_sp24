@@ -18,6 +18,4 @@ python3 run_glue.py \
   --num_train_epochs 10 \
   --output_dir /tmp/RTE/ \
   --overwrite_output_dir \
-  --master_addr $MASTER_ADDR \
-  --master_port 8002 \
   --world_size 4
