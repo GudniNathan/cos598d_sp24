@@ -56,7 +56,7 @@ class BertEncoderMP(BertEncoder):
         layer_count = config.num_hidden_layers // gpu_count
         
         self.gpu_allocation = [0] * config.num_hidden_layers
-        for i, layer in enumerate(self.layer):
+        for i, layer in enumerate(layers):
             gpu = i // layer_count
             layers[i] = layer.to(f"cuda:{gpu}")
             self.gpu_allocation[i] = gpu
