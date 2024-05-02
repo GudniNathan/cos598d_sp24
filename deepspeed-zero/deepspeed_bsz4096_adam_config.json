@@ -26,9 +26,6 @@
         "stage3_param_persistence_threshold": 1e5,
         "reduce_bucket_size": 1e7,
         "sub_group_size": 1e9,
-        "offload_optimizer": {
-            "device": "cpu"
-        },
         "offload_param": {
             "device": "cpu"
         }
