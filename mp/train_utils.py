@@ -4,6 +4,7 @@ import torch.distributed as dist
 from datetime import datetime
 import tqdm
 from pytorch_transformers import BertTokenizer, BertForMaskedLM
+from bert import BertForSequenceClassificationMP
 
 g_gigabyte = 1024**3
 
@@ -33,8 +34,7 @@ def format_metrics_to_gb(item):
 
 def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None):
     model.train()
-    local_rank = int(os.environ['LOCAL_RANK'])
-    fsdp_loss = torch.zeros(2).to(local_rank)
+    fsdp_loss = torch.zeros(2).to(0)
   
     if sampler:
         sampler.set_epoch(epoch)
@@ -58,7 +58,6 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         if rank==0:
             inner_pbar.update(1)
 
-    dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
     train_accuracy = fsdp_loss[0] / fsdp_loss[1]
 
 
@@ -73,15 +72,14 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
 def validation(model, rank, world_size, val_loader):
     model.eval()
     correct = 0
-    local_rank = int(os.environ['LOCAL_RANK'])
-    fsdp_loss = torch.zeros(2).to(local_rank)
+    fsdp_loss = torch.zeros(2).to(0)
     if rank == 0:
         inner_pbar = tqdm.tqdm(
             range(len(val_loader)), colour="green", desc="Validation Epoch"
         )
     with torch.no_grad():
         for batch in val_loader:
-            batch = tuple(t.to(local_rank) for t in batch)
+            batch = tuple(t.to(0) for t in batch)
             inputs = {'input_ids':      batch[0],
                     'attention_mask': batch[1],
                     'token_type_ids': batch[2],  # XLM don't use segment_ids
@@ -93,7 +91,7 @@ def validation(model, rank, world_size, val_loader):
             if rank==0:
                 inner_pbar.update(1)
 
-    dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
+    # dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
     val_loss = fsdp_loss[0] / fsdp_loss[1]
     if rank == 0:
         inner_pbar.close()
@@ -102,6 +100,6 @@ def validation(model, rank, world_size, val_loader):
 
 
 def setup_model(model_name):
-        model = BertForMaskedLM.from_pretrained(model_name)
+        model = BertForSequenceClassificationMP.from_pretrained(model_name)
         tokenizer =  BertTokenizer.from_pretrained(model_name)
         return model, tokenizer

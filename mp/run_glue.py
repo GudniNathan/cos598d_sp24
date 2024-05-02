@@ -115,42 +115,10 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     else:
         t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
 
-    # Initialize the FSDP policy
-    my_auto_wrap_policy = functools.partial(
-        transformer_auto_wrap_policy,
-        transformer_layer_cls={
-            BertLayer,
-            BertAttention,
-            BertIntermediate,
-            BertOutput,
-            BertEncoder,
-        },
-    )
-    
-    torch.cuda.set_device(args.local_rank)
-    
-    if True:
-        model = FSDP(
-            model,
-            cpu_offload=CPUOffload(False),
-            auto_wrap_policy=my_auto_wrap_policy,
-            backward_prefetch=BackwardPrefetch.BACKWARD_POST,
-            sharding_strategy=ShardingStrategy.FULL_SHARD,
-            device_id=args.local_rank,
-            sync_module_states=True,
-        )
-    else:
-        model.to(args.device)
-        model = DDP(model)
 
     # Print the model architecture to see how the model is sharded
     print(model)
     
-    #if args.local_rank == 0:
-    #    # Wait for usr input to continue
-    #    input("Press Enter to continue...")
-    
-    # fsdp_model.to(args.local_rank)
     
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ['bias', 'LayerNorm.weight']
@@ -158,7 +126,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
         {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-    optimizer = AdamW(model.parameters(), lr=args.learning_rate, eps=args.adam_epsilon)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
     if args.fp16:
         try:
@@ -398,8 +366,8 @@ def main(args):
     print("Master address:", args.master_addr +":" + args.master_port)
     
 
-    print("Initializing distributed training...")
-    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="nccl", timeout=timedelta(seconds=60))
+    # print("Initializing distributed training...")
+    # torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="nccl", timeout=timedelta(seconds=60))
     
 
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
