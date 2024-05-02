@@ -120,7 +120,7 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
     scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
     model, optimizer, _, _ = deepspeed.initialize(args=args,
                                      model=model,
-                                     optimizer=optimizer,
+                                     model_parameters=optimizer_grouped_parameters,
                                      dist_init_required=False)
     if args.fp16:
         try:
