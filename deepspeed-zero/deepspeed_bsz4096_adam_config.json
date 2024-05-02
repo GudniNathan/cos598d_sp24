@@ -5,17 +5,17 @@
     "steps_per_print": 1000,
     "gradient_clipping": 1.0,
     "optimizer": {
-      "type": "Adam",
-      "params": {
-        "lr": 2e-4,
-        "weight_decay": 0.01,
-        "bias_correction": false
-      }
+        "type": "Adam",
+        "params": {
+            "lr": 2e-4,
+            "weight_decay": 0.01,
+            "bias_correction": false
+        }
     },
     "fp16": {
-      "enabled": false,
-      "loss_scale": 0,
-      "initial_scale_power": 16
+        "enabled": false,
+        "loss_scale": 0,
+        "initial_scale_power": 16
     },
     "zero_optimization": {
         "stage": 3,
@@ -25,12 +25,6 @@
         "stage3_prefetch_bucket_size": 1e7,
         "stage3_param_persistence_threshold": 1e5,
         "reduce_bucket_size": 1e7,
-        "sub_group_size": 1e9,
-        "offload_optimizer": {
-            "device": "cpu"
-         },
-        "offload_param": {
-            "device": "cpu"
-       }
+        "sub_group_size": 1e9
     }
 }
