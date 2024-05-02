@@ -58,18 +58,11 @@ class BertEncoderMP(BertEncoder):
     def forward(self, hidden_states, attention_mask, head_mask=None):
         all_hidden_states = ()
         all_attentions = ()
-        # Print the devices
-        hidden_state_device = hidden_states.device
-        print(f"Hidden states device: {hidden_state_device}")
-        attention_mask_device = attention_mask.device
-        print(f"Attention mask device: {attention_mask_device}")
-        print(f"GPU allocation: {self.gpu_allocation}")
+
         for i, layer_module in enumerate(self.layer):
-            print(i)
             if i > 0 and self.gpu_allocation[i] != self.gpu_allocation[i-1]:
                 hidden_states = hidden_states.to(self.gpu_allocation[i])
                 attention_mask = attention_mask.to(self.gpu_allocation[i])
-                print("Moved hidden states and attention mask")
             if self.output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
             layer_outputs = layer_module(hidden_states, attention_mask, head_mask[i])
@@ -78,7 +71,6 @@ class BertEncoderMP(BertEncoder):
             if self.output_attentions:
                 all_attentions = all_attentions + (layer_outputs[1],)
 
-        print("Completed loop successfully")
         hidden_states = hidden_states.to(0)
         # Add last layer
         if self.output_hidden_states:
