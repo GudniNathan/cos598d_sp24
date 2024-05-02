@@ -17,7 +17,7 @@ import torch.distributed
 
 import copy
 
-BertArgs = None
+BertArgs = [None]
 
 # Model parallel version of BertForSequenceClassification
 # This is the same as the original BertForSequenceClassification,
@@ -51,7 +51,7 @@ class BertModelMP(BertModel):
 class BertEncoderMPDistributed(BertEncoder):
     def __init__(self, config):
         super().__init__(config)
-        args = BertArgs
+        args = BertArgs[0]
         if args.deepspeed_transformer_kernel:
             from deepspeed import DeepSpeedTransformerLayer, DeepSpeedTransformerConfig, DeepSpeedConfig
 

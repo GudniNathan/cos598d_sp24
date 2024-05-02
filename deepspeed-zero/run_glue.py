@@ -579,6 +579,6 @@ if __name__ == "__main__":
      
     args = parser.parse_args()
     args.eval_batch_size = args.per_gpu_eval_batch_size
-    BertArgs = args
+    BertArgs[0] = args
 
     main(args)
