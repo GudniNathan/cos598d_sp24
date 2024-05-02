@@ -60,6 +60,7 @@ class BertEncoderMP(BertEncoder):
         print(f"Hidden states device: {hidden_state_device}")
         attention_mask_device = attention_mask.device
         print(f"Attention mask device: {attention_mask_device}")
+        print(f"GPU allocation: {self.gpu_allocation}")
         for i, layer_module in enumerate(self.layer):
             print(i)
             if self.gpu_allocation[i] != hidden_states.device.index:
