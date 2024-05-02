@@ -116,8 +116,8 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': args.weight_decay},
         {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
-    scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
+    # optimizer = AdamW(optimizer_grouped_parameters, lr=args.learning_rate, eps=args.adam_epsilon)
+    # scheduler = WarmupLinearSchedule(optimizer, warmup_steps=args.warmup_steps, t_total=t_total)
     model, optimizer, _, _ = deepspeed.initialize(args=args,
                                      model=model,
                                      model_parameters=optimizer_grouped_parameters,
@@ -168,7 +168,7 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
         train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
         if args.do_eval:
             curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
-        scheduler.step()
+        # scheduler.step()
         global_step += 1
         
         if args.local_rank == 0:

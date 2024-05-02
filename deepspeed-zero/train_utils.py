@@ -57,7 +57,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
                 optimizer.backward(loss)
             else:
                 loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
         if args.deepspeed:
             model.step()
         else:
