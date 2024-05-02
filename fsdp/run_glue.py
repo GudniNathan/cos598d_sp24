@@ -119,10 +119,10 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         transformer_auto_wrap_policy,
         transformer_layer_cls={
             BertLayer,
-            BertAttention,
-            BertIntermediate,
-            BertOutput,
-            BertEncoder,
+            # BertAttention,
+            # BertIntermediate,
+            # BertOutput,
+            # BertEncoder,
         },
     )
     
