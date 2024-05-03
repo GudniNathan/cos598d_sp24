@@ -441,6 +441,7 @@ def main(args):
     os.environ['MASTER_ADDR'] = args.master_addr
     os.environ['MASTER_PORT'] = args.master_port
     print("Master address:", args.master_addr +":" + args.master_port)
+    print("Rank", args.local_rank, "device", args.device)
     
 
     # print("Initializing distributed training...")
