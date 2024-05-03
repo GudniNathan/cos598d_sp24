@@ -118,7 +118,7 @@ def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
 
     # Input configs
     example_inputs = generate_inputs_for_model(
-        model_class, bert, model_name, args.batch_size, args.device)
+        model_class, bert, model_name, args.train_batch_size, args.device)
 
     # Annotate split points
     add_split_points(bert, args.world_size)
@@ -187,7 +187,7 @@ def pipeline_main_old(args, train_dataset, eval_dataset, model, tokenizer):
     # Input configs
     model_name = "BertForSequenceClassification"
     example_inputs = generate_inputs_for_model(
-        BertForSequenceClassification, model, model_name, args.batch_size, args.device)
+        BertForSequenceClassification, model, model_name, args.train_batch_size, args.device)
 
     # Create pipeline
     bert_pipe = pipeline(
@@ -609,8 +609,8 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
-    parser.add_argument('--batch-size', default=4,
-                        help='Size of the micro batch in the pipeline')
+    parser.add_argument("--chunks", type=int, default=64)
+
     args = parser.parse_args()
     args.eval_batch_size = args.per_gpu_eval_batch_size
 
