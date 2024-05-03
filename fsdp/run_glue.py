@@ -31,6 +31,7 @@ from datetime import timedelta
 import numpy as np
 import torch
 import torch.distributed
+import torch.distributed
 import torch.distributed.fsdp
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
@@ -473,6 +474,7 @@ def main(args):
     evaluate(args, model, tokenizer, prefix="")
     
     # Clean up process group
+    torch.distributed.barrier()
     torch.distributed.destroy_process_group()
     
     if args.local_rank == 0 and args.track_memory:
