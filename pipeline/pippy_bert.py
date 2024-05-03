@@ -75,13 +75,10 @@ def run(args):
     if args.rank == 0:
         schedule.step(**example_inputs)
     else:
-        out = schedule.step()
-        if out is not None:
-            print(out)
-            print(f"Rank {args.rank} completes")
-            print(f"Device: {out.device}")
-            print(f"Grad_fn: {out.grad_fn}")
-            out.grad_fn()
+        loss = schedule.step()
+        if loss is not None:
+            loss.backward()
+            
 
     print(f"Rank {args.rank} completes")
 
