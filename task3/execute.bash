@@ -18,6 +18,4 @@ torchrun --nproc_per_node 4 run_glue.py \
   --num_train_epochs 10 \
   --output_dir /tmp/$TASK_NAME/ \
   --overwrite_output_dir \
-  --master_addr $MASTER_ADDR \
-  --master_port $MASTER_PORT \
   --world_size $WORLD_SIZE
