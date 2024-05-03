@@ -139,7 +139,7 @@ def train(args, train_dataset, model, tokenizer):
             with profile(activities=[ProfilerActivity.CUDA], record_shapes=True) as prof:
                 with record_function("model_inference"):
                     outputs = ddp_model(**inputs)
-            print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+            print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
             loss = outputs[0]  # model outputs are always tuple in pytorch-transformers (see doc)
 
             if args.gradient_accumulation_steps > 1:
