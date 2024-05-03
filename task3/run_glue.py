@@ -465,8 +465,6 @@ def main():
 
     logger.info("Training/evaluation parameters %s", args)
 
-    torch.distributed.destroy_process_group()
-    return 
 
     # Training
     if args.do_train:
