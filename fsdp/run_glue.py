@@ -199,7 +199,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     for epoch in train_iterator:
         print("Epoch", epoch, "started.") 
         # Deal with distributed training
-        torch.distributed.barrier()
+        # torch.distributed.barrier()
         t0 = time.time()
 
         train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
