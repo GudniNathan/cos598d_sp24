@@ -144,8 +144,9 @@ def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
 
     # Attach to a schedule
     schedule = ScheduleGPipe(stage, args.chunks)
+    train_sampler.set_epoch(0)
 
-    for step, batch in enumerate(train_sampler):
+    for step, batch in enumerate(train_dataloader):
         batch = tuple(t.to(args.device) for t in batch)
         inputs = {'input_ids':      batch[0],
                   'attention_mask': batch[1],
@@ -163,155 +164,8 @@ def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
 
     print(f"Rank {args.local_rank} completes")
 
-    
 
-def pipeline_main_old(args, train_dataset, eval_dataset, model, tokenizer):
-    """ Train the model """
-    
-    print("Starting training...")
-
-    args.train_batch_size = args.per_gpu_train_batch_size
-    train_sampler = DistributedSampler(train_dataset, num_replicas=args.world_size, rank=args.local_rank)
-    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size,
-                                  num_workers=args.world_size, pin_memory=True, shuffle=False)
-    
-    eval_sampler = SequentialSampler(eval_dataset)
-    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
-
-    if args.max_steps > 0:
-        t_total = args.max_steps
-        args.num_train_epochs = args.max_steps // (len(train_dataloader) // args.gradient_accumulation_steps) + 1
-    else:
-        t_total = len(train_dataloader) // args.gradient_accumulation_steps * args.num_train_epochs
-
-    # Input configs
-    model_name = "BertForSequenceClassification"
-    example_inputs = generate_inputs_for_model(
-        BertForSequenceClassification, model, model_name, args.train_batch_size, args.device)
-
-    # Create pipeline
-    bert_pipe = pipeline(
-        model,
-        num_chunks=args.chunks,
-        example_args=(),
-        example_kwargs=example_inputs,
-    )
-    assert bert_pipe.num_stages == args.world_size, f"nstages = {bert_pipe.num_stages} nranks = {args.world_size}"
-    if args.local_rank == 0:
-        for i, sm in enumerate(bert_pipe.split_gm.children()):
-            print(f"Pipeline stage {i} {get_number_of_params(sm) // 10 ** 6}M params")
-
-    # Create schedule runtime
-    stage = PipelineStage(
-        bert_pipe,
-        args.local_rank,
-        device=args.device,
-    )
-
-    # Attach to a schedule
-    scheduler = ScheduleGPipe(stage, args.chunks)    
-    
-    # Train!
-    logger.info("***** Running training *****")
-    logger.info("  Num examples = %d", len(train_dataset))
-    logger.info("  Num Epochs = %d", args.num_train_epochs)
-    logger.info("  Instantaneous batch size per GPU = %d", args.per_gpu_train_batch_size)
-    logger.info("  Total train batch size (w. parallel, distributed & accumulation) = %d",
-                   args.train_batch_size * args.gradient_accumulation_steps * (args.world_size if args.local_rank != -1 else 1))
-    logger.info("  Gradient Accumulation steps = %d", args.gradient_accumulation_steps)
-    logger.info("  Total optimization steps = %d", t_total)
-    
-    if args.local_rank == 0:
-        time_of_run = get_date_of_run()
-        dur = []
-        train_acc_tracking = []
-        val_acc_tracking = []
-        training_start_time = time.time()
-
-    if args.local_rank == 0 and args.track_memory:
-        mem_alloc_tracker = []
-        mem_reserved_tracker = []
-
-    global_step = 0
-    tr_loss, logging_loss = 0.0, 0.0
-    best_val_loss = float("inf")
-    curr_val_loss = float("inf")
-    file_save_name = f"{args.model_type}-{args.task_name}-model-"
-    total_iteration_time = 0
-    model.zero_grad()
-    train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
-    set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-    for epoch in train_iterator:
-        print("Epoch", epoch, "started.") 
-        # Deal with distributed training
-        #torch.distributed.barrier()
-        t0 = time.time()
-
-        # train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
-        # if args.do_eval:
-        #     curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
-        losses = []
-        if args.local_rank == 0:
-            scheduler.step(example_inputs, losses=losses)
-        else:
-            out = scheduler.step(losses=losses)
-        global_step += 1
-        
-        if args.local_rank == 0:
-
-            print(f"--> epoch {epoch} completed...entering save and stats zone")
-
-            dur.append(time.time() - t0)
-            train_acc_tracking.append(train_accuracy.item())
-
-            if args.do_eval:
-                val_acc_tracking.append(curr_val_loss.item())
-
-            if args.track_memory:
-                mem_alloc_tracker.append(
-                    format_metrics_to_gb(torch.cuda.memory_allocated())
-                )
-                mem_reserved_tracker.append(
-                    format_metrics_to_gb(torch.cuda.memory_reserved())
-                )
-                print("memory allocated:", mem_alloc_tracker[-1])
-                print("memory reserved:", mem_reserved_tracker[-1])
-            print(f"completed save and stats zone...")
-        
-        if args.save_model and curr_val_loss < best_val_loss:
-            # save
-            if args.local_rank == 0:
-                print(f"--> entering save model state")
-
-            save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-            with FSDP.state_dict_type(
-                model, StateDictType.FULL_STATE_DICT, save_policy
-            ):
-                cpu_state = model.state_dict()
-            #print(f"saving process: rank {rank}  done w state_dict")
-
-
-            if args.local_rank == 0:
-                print(f"--> saving model ...")
-                currEpoch = (
-                    "-" + str(epoch) + "-" + str(round(curr_val_loss.item(), 4)) + ".pt"
-                )
-                print(f"--> attempting to save model prefix {currEpoch}")
-                save_name = file_save_name + "-" + time_of_run + "-" + currEpoch
-                print(f"--> saving as model name {save_name}")
-
-                torch.save(cpu_state, save_name)
-        if args.max_steps > 0 and global_step > args.max_steps:
-            train_iterator.close()
-            break
-                
-        ##################################################
-        # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
-        # evaluate(args, fsdp_model, tokenizer)
-        ##################################################
-    #torch.distributed.barrier()
-
-    return global_step, tr_loss / global_step, model
+    # return global_step, tr_loss / global_step, model
 
 
 def evaluate(args, model, tokenizer, prefix=""):
