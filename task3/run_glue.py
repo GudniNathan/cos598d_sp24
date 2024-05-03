@@ -120,10 +120,10 @@ def train(args, train_dataset, model, tokenizer):
     ddp_model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-    with profile(activities=[ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as prof:
-        with record_function("model_inference"):
 
-            for epoch in train_iterator:
+    for epoch in train_iterator:
+        with profile(activities=[ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as prof:
+            with record_function("model_inference"):
                 # Deal with distributed training
                 torch.distributed.barrier()
                 print("Epoch", epoch, "started.") 
@@ -190,8 +190,8 @@ def train(args, train_dataset, model, tokenizer):
                 evaluate(args, ddp_model, tokenizer)
                 ##################################################
 
-    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10, header=f"cuda_time_total, rank {args.local_rank}"))
-    print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10, header=f"self_cuda_memory_usage, rank {args.local_rank}"))
+        print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10, header=f"cuda_time_total, rank {args.local_rank}"))
+        print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10, header=f"self_cuda_memory_usage, rank {args.local_rank}"))
     
     
     return global_step, tr_loss / global_step
