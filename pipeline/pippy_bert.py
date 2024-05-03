@@ -72,13 +72,13 @@ def run(args):
     schedule = ScheduleGPipe(stage, args.chunks)
 
     # Run
+    losses = []
     if args.rank == 0:
-        schedule.step(**example_inputs)
+        schedule.step(**example_inputs, losses=losses)
     else:
-        loss = schedule.step()
-        if loss is not None:
-            loss.backward()
-            
+        out = schedule.step(losses=losses)
+    print("Losses", losses)
+
 
     print(f"Rank {args.rank} completes")
 
