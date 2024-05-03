@@ -4,7 +4,7 @@ export GLUE_DIR=$HOME/glue_data
 export TASK_NAME=RTE
 export WORLD_SIZE=4
 
-torchrun --nnodes 1 --nproc_per_node 4 run_glue.py \
+torchrun --nproc_per_node 4 run_glue.py \
   --model_type bert \
   --model_name_or_path bert-base-cased \
   --task_name $TASK_NAME \

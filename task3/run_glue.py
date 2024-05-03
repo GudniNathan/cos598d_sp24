@@ -403,7 +403,13 @@ def main():
     print("Master address:", args.master_addr +":" + args.master_port)
 
     print("Initializing distributed training...")
-    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="gloo", timeout=timedelta(seconds=60))
+    torch.distributed.init_process_group(
+        rank=args.local_rank,
+        world_size=args.world_size,
+        backend="nccl",
+        timeout=timedelta(seconds=60),
+        init_method='file:///workspace/connect/file',  # File-based synchronization
+    )
 
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
 
