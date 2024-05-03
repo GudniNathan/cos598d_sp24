@@ -609,6 +609,8 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
+    parser.add_argument('--batch-size', default=4,
+                        help='Size of the micro batch in the pipeline')
     args = parser.parse_args()
     args.eval_batch_size = args.per_gpu_eval_batch_size
 
