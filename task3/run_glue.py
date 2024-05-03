@@ -416,9 +416,6 @@ def main():
 
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
 
-    torch.distributed.destroy_process_group()
-    return 
-
     # Setup logging
     logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                         datefmt = '%m/%d/%Y %H:%M:%S',
@@ -468,6 +465,8 @@ def main():
 
     logger.info("Training/evaluation parameters %s", args)
 
+    torch.distributed.destroy_process_group()
+    return 
 
     # Training
     if args.do_train:
