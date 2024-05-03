@@ -120,7 +120,6 @@ def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
     example_inputs = generate_inputs_for_model(
         model_class, bert, model_name, args.train_batch_size, args.device)
     print("EXAMPLES:", example_inputs)
-    print("REALS:", train_dataloader.__iter__().next())
 
     # Annotate split points
     add_split_points(bert, args.world_size)
@@ -149,6 +148,7 @@ def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
     train_sampler.set_epoch(0)
 
     for step, batch in enumerate(train_dataloader):
+        print("REALS", batch)
         batch = tuple(t.to(args.device) for t in batch)
         inputs = {'input_ids':      batch[0],
                   'attention_mask': batch[1],
