@@ -444,9 +444,15 @@ def main(args):
     
 
     # print("Initializing distributed training...")
-    # torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="nccl", timeout=timedelta(seconds=60))
+    torch.distributed.init_process_group(
+        rank=args.local_rank,
+        world_size=args.world_size,
+        backend="nccl",
+        timeout=timedelta(seconds=60),
+        init_method='file:///workspace/connect/pipeline',  # File-based synchronization
+    )
     
-
+    
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
 
     # Setup logging
@@ -487,19 +493,6 @@ def main(args):
     )
     print("Model loaded.")
     ##################################################
-
-    model.to(args.device)
-    model.eval()
-    if args.local_rank == 0:
-        print(model.config)
-        print(f"Total number of params = {get_number_of_params(bert) // 10 ** 6}M")
-        print(model)
-
-    #if args.local_rank == 0:
-    #    torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
-
-
-    # torch.distributed.init_process_group(backend='nccl')
 
 
     logger.info("Training/evaluation parameters %s", args)
