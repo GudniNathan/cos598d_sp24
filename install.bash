@@ -8,6 +8,7 @@ pip3 install pytorch-transformers
 pip3 install scipy
 pip3 install scikit-learn
 pip3 install deepspeed
+pip3 install transformers
 
 cd $HOME
 git clone https://github.com/NVIDIA/cutlass $HOME/cutlass
