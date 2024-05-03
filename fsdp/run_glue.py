@@ -403,7 +403,7 @@ def main(args):
         rank=args.local_rank,
         world_size=args.world_size,
         backend="nccl",
-        timeout=timedelta(seconds=60)
+        timeout=timedelta(seconds=60),
         init_method='file:///workspace/connect/file',  # File-based synchronization
     )
     
