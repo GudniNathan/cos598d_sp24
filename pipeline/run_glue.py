@@ -111,7 +111,7 @@ def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
     model_name = "BertForSequenceClassification"
     bert.to(args.device)
     bert.eval()
-    if args.rank == 0:
+    if args.local_rank == 0:
         print(bert.config)
         print(f"Total number of params = {get_number_of_params(bert) // 10 ** 6}M")
         print(bert)
@@ -131,14 +131,14 @@ def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
         example_kwargs=example_inputs,
     )
     assert bert_pipe.num_stages == args.world_size, f"nstages = {bert_pipe.num_stages} nranks = {args.world_size}"
-    if args.rank == 0:
+    if args.local_rank == 0:
         for i, sm in enumerate(bert_pipe.split_gm.children()):
             print(f"Pipeline stage {i} {get_number_of_params(sm) // 10 ** 6}M params")
 
     # Create schedule runtime
     stage = PipelineStage(
         bert_pipe,
-        args.rank,
+        args.local_rank,
         device=args.device,
     )
 
@@ -154,14 +154,14 @@ def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
 
         # Run
         losses = []
-        if args.rank == 0:
+        if args.local_rank == 0:
             schedule.step(**inputs, losses=losses)
         else:
             out = schedule.step(losses=losses)
         print("Losses", losses)
 
 
-    print(f"Rank {args.rank} completes")
+    print(f"Rank {args.local_rank} completes")
 
     
 
@@ -197,14 +197,14 @@ def pipeline_main_old(args, train_dataset, eval_dataset, model, tokenizer):
         example_kwargs=example_inputs,
     )
     assert bert_pipe.num_stages == args.world_size, f"nstages = {bert_pipe.num_stages} nranks = {args.world_size}"
-    if args.rank == 0:
+    if args.local_rank == 0:
         for i, sm in enumerate(bert_pipe.split_gm.children()):
             print(f"Pipeline stage {i} {get_number_of_params(sm) // 10 ** 6}M params")
 
     # Create schedule runtime
     stage = PipelineStage(
         bert_pipe,
-        args.rank,
+        args.local_rank,
         device=args.device,
     )
 
