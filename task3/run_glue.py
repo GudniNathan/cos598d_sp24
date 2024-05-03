@@ -120,76 +120,77 @@ def train(args, train_dataset, model, tokenizer):
     ddp_model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-    for epoch in train_iterator:
-        # Deal with distributed training
-        torch.distributed.barrier()
-        print("Epoch", epoch, "started.") 
-        epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
-        for step, batch in enumerate(epoch_iterator):
-            # Want to report the average time per iteration, discarding the first iteration
-            iteration_time = time.time()
+    with profile(activities=[ProfilerActivity.CUDA], record_shapes=True) as prof:
+        with record_function("model_inference"):
 
-            ddp_model.train()
-            batch = tuple(t.to(args.device) for t in batch)
-            inputs = {'input_ids':      batch[0],
-                      'attention_mask': batch[1],
-                      'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
-                      'labels':         batch[3]}
-            
-            with profile(activities=[ProfilerActivity.CUDA], record_shapes=True) as prof:
-                with record_function("model_inference"):
+            for epoch in train_iterator:
+                # Deal with distributed training
+                torch.distributed.barrier()
+                print("Epoch", epoch, "started.") 
+                epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
+                for step, batch in enumerate(epoch_iterator):
+                    # Want to report the average time per iteration, discarding the first iteration
+                    iteration_time = time.time()
+
+                    ddp_model.train()
+                    batch = tuple(t.to(args.device) for t in batch)
+                    inputs = {'input_ids':      batch[0],
+                            'attention_mask': batch[1],
+                            'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
+                            'labels':         batch[3]}
+                    
                     outputs = ddp_model(**inputs)
-            print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
-            loss = outputs[0]  # model outputs are always tuple in pytorch-transformers (see doc)
+                    loss = outputs[0]  # model outputs are always tuple in pytorch-transformers (see doc)
 
-            if args.gradient_accumulation_steps > 1:
-                loss = loss / args.gradient_accumulation_steps
+                    if args.gradient_accumulation_steps > 1:
+                        loss = loss / args.gradient_accumulation_steps
 
-            if args.fp16:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-                torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
-            else:
+                    if args.fp16:
+                        with amp.scale_loss(loss, optimizer) as scaled_loss:
+                            scaled_loss.backward()
+                        torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+                    else:
+                        ##################################################
+                        # TODO(cos598d): perform backward pass here
+                        loss.backward()
+                        ##################################################
+                        torch.nn.utils.clip_grad_norm_(ddp_model.parameters(), args.max_grad_norm)
+
+
+                    tr_loss += loss.item()
+                    if (step + 1) % args.gradient_accumulation_steps == 0:
+                        scheduler.step()  # Update learning rate schedule
+                        ##################################################
+                        # TODO(cos598d): perform a single optimization step (parameter update) by invoking the optimizer
+                        # logger.info("Optimizing...")
+                        optimizer.step()
+                        # logger.info("Optimization step done.")
+                        ##################################################
+                        ddp_model.zero_grad()
+                        global_step += 1
+                    
+                    # Record the loss values of the first five minibatches 
+                    # by printing the loss value after every iteration
+                    if global_step <= 5:
+                        logger.info(" \tLoss value at iteration %d: %f", global_step, tr_loss)
+                    if 1 < global_step <= 40:
+                        total_iteration_time += time.time() - iteration_time
+                        average_elapsed_time = total_iteration_time / (global_step - 1)
+                        print(" \tAverage elapsed time per iteration:", f"{average_elapsed_time:.4f}", "at iteration ", global_step)
+
+                    if args.max_steps > 0 and global_step > args.max_steps:
+                        epoch_iterator.close()
+                        break
+                if args.max_steps > 0 and global_step > args.max_steps:
+                    train_iterator.close()
+                    break
+                        
                 ##################################################
-                # TODO(cos598d): perform backward pass here
-                loss.backward()
+                # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
+                evaluate(args, ddp_model, tokenizer)
                 ##################################################
-                torch.nn.utils.clip_grad_norm_(ddp_model.parameters(), args.max_grad_norm)
 
-
-            tr_loss += loss.item()
-            if (step + 1) % args.gradient_accumulation_steps == 0:
-                scheduler.step()  # Update learning rate schedule
-                ##################################################
-                # TODO(cos598d): perform a single optimization step (parameter update) by invoking the optimizer
-                # logger.info("Optimizing...")
-                optimizer.step()
-                # logger.info("Optimization step done.")
-                ##################################################
-                ddp_model.zero_grad()
-                global_step += 1
-            
-            # Record the loss values of the first five minibatches 
-            # by printing the loss value after every iteration
-            if global_step <= 5:
-                logger.info(" \tLoss value at iteration %d: %f", global_step, tr_loss)
-            if 1 < global_step <= 40:
-                total_iteration_time += time.time() - iteration_time
-                average_elapsed_time = total_iteration_time / (global_step - 1)
-                print(" \tAverage elapsed time per iteration:", f"{average_elapsed_time:.4f}", "at iteration ", global_step)
-
-            if args.max_steps > 0 and global_step > args.max_steps:
-                epoch_iterator.close()
-                break
-        if args.max_steps > 0 and global_step > args.max_steps:
-            train_iterator.close()
-            break
-                
-        ##################################################
-        # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
-        evaluate(args, ddp_model, tokenizer)
-        ##################################################
-
+    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
     return global_step, tr_loss / global_step
 
 
