@@ -399,7 +399,14 @@ def main(args):
 
     print("Initializing distributed training...")
     print("Local rank:", args.local_rank)
-    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="nccl", timeout=timedelta(seconds=60))
+    torch.distributed.init_process_group(
+        rank=args.local_rank,
+        world_size=args.world_size,
+        backend="nccl",
+        timeout=timedelta(seconds=60)
+        # Using only localhost for now
+        init_method='tcp://localhost:12345'
+    )
     
 
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
