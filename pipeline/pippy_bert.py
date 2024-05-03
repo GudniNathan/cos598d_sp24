@@ -78,7 +78,7 @@ def run(args):
         out = schedule.step()
         if out is not None:
             print(out)
-            loss, device, grad_fn = out
+            loss, device, grad_fn = out[0]
             print(f"Rank {args.rank} completes")
             print(f"Loss: {loss}")
             print(f"Device: {device}")
