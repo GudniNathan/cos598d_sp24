@@ -474,7 +474,6 @@ def main(args):
     evaluate(args, model, tokenizer, prefix="")
     
     # Clean up process group
-    torch.distributed.barrier()
     torch.distributed.destroy_process_group()
     
     if args.local_rank == 0 and args.track_memory:
