@@ -119,8 +119,8 @@ def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
     # Input configs
     example_inputs = generate_inputs_for_model(
         model_class, bert, model_name, args.train_batch_size, args.device)
-    print(example_inputs)
-    print(train_dataloader.__iter__().next())
+    print("EXAMPLES:", example_inputs)
+    print("REALS:", train_dataloader.__iter__().next())
 
     # Annotate split points
     add_split_points(bert, args.world_size)
