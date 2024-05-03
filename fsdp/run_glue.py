@@ -404,8 +404,7 @@ def main(args):
         world_size=args.world_size,
         backend="nccl",
         timeout=timedelta(seconds=60)
-        # Using only localhost for now
-        init_method='tcp://localhost:12345'
+        init_method='file:///workspace/connect/file',  # File-based synchronization
     )
     
 
