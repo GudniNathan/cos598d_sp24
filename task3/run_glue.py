@@ -52,6 +52,8 @@ from utils_glue import (compute_metrics, convert_examples_to_features,
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+from torch.profiler import profile, record_function, ProfilerActivity
+
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig, RobertaConfig)), ())
@@ -133,7 +135,11 @@ def train(args, train_dataset, model, tokenizer):
                       'attention_mask': batch[1],
                       'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
                       'labels':         batch[3]}
-            outputs = ddp_model(**inputs)
+            
+            with profile(activities=[ProfilerActivity.CUDA], record_shapes=True) as prof:
+                with record_function("model_inference"):
+                    outputs = ddp_model(**inputs)
+                    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
             loss = outputs[0]  # model outputs are always tuple in pytorch-transformers (see doc)
 
             if args.gradient_accumulation_steps > 1:
