@@ -388,6 +388,9 @@ def main():
     parser.add_argument('--world_size', type=int, default=4, required=True, 
                         help='Number of processes participating in distributed training')
     args = parser.parse_args()
+    
+    args.local_rank = int(os.environ.get('LOCAL_RANK', args.local_rank))
+
 
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
