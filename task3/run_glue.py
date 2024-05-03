@@ -411,7 +411,7 @@ def main():
         world_size=args.world_size,
         backend="nccl",
         timeout=timedelta(seconds=60),
-        init_method='file:///workspace/connect/file',  # File-based synchronization
+        init_method='file:///workspace/connect/file2',  # File-based synchronization
     )
 
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
