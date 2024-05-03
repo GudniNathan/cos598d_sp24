@@ -450,7 +450,7 @@ def main(args):
         world_size=args.world_size,
         backend="nccl",
         timeout=timedelta(seconds=60),
-        init_method='file:///workspace/connect/pipeline',  # File-based synchronization
+        # init_method='file:///workspace/connect/pipeline',  # File-based synchronization
     )
     
     
