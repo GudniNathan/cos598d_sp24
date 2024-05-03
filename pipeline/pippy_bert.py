@@ -19,6 +19,7 @@ from transformers import BertForSequenceClassification, BertConfig
 from hf_utils import generate_inputs_for_model, get_number_of_params
 
 
+
 def add_split_points(bert, nranks):
     layers_per_rank = bert.config.num_hidden_layers // nranks
     for i in range(1, nranks):

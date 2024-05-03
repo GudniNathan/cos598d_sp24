@@ -91,8 +91,80 @@ def set_seed(args):
     torch.backends.cudnn.benchmark = False
     torch.cuda.manual_seed_all(args.seed)
     
+    
+def pipeline_main(args, train_dataset, eval_dataset, bert, tokenizer):
+    #Samplers
+    train_sampler = DistributedSampler(train_dataset, num_replicas=args.world_size, rank=args.local_rank)
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size,
+                                  num_workers=args.world_size, pin_memory=True, shuffle=False)
+    
+    eval_sampler = SequentialSampler(eval_dataset)
+    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
-def pipeline_main(args, train_dataset, eval_dataset, model, tokenizer):
+    
+    # Model configs
+    print("Using device:", args.device)
+
+    # Create model
+    model_class = BertForSequenceClassification
+    model_name = "BertForSequenceClassification"
+    bert.to(args.device)
+    bert.eval()
+    if args.rank == 0:
+        print(bert.config)
+        print(f"Total number of params = {get_number_of_params(bert) // 10 ** 6}M")
+        print(bert)
+
+    # Input configs
+    example_inputs = generate_inputs_for_model(
+        model_class, bert, model_name, args.batch_size, args.device)
+
+    # Annotate split points
+    add_split_points(bert, args.world_size)
+
+    # Create pipeline
+    bert_pipe = pipeline(
+        bert,
+        num_chunks=args.chunks,
+        example_args=(),
+        example_kwargs=example_inputs,
+    )
+    assert bert_pipe.num_stages == args.world_size, f"nstages = {bert_pipe.num_stages} nranks = {args.world_size}"
+    if args.rank == 0:
+        for i, sm in enumerate(bert_pipe.split_gm.children()):
+            print(f"Pipeline stage {i} {get_number_of_params(sm) // 10 ** 6}M params")
+
+    # Create schedule runtime
+    stage = PipelineStage(
+        bert_pipe,
+        args.rank,
+        device=args.device,
+    )
+
+    # Attach to a schedule
+    schedule = ScheduleGPipe(stage, args.chunks)
+
+    for step, batch in enumerate(train_sampler):
+        batch = tuple(t.to(args.device) for t in batch)
+        inputs = {'input_ids':      batch[0],
+                  'attention_mask': batch[1],
+                  'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
+                  'labels':         batch[3]}
+
+        # Run
+        losses = []
+        if args.rank == 0:
+            schedule.step(**inputs, losses=losses)
+        else:
+            out = schedule.step(losses=losses)
+        print("Losses", losses)
+
+
+    print(f"Rank {args.rank} completes")
+
+    
+
+def pipeline_main_old(args, train_dataset, eval_dataset, model, tokenizer):
     """ Train the model """
     
     print("Starting training...")
