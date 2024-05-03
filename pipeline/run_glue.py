@@ -599,7 +599,7 @@ if __name__ == "__main__":
                         help="For distributed training: local_rank. If single-node training, local_rank defaults to -1.")
     parser.add_argument('--master_addr', type=str, default='localhost', required=False, 
                         help='Master address for distributed training')
-    parser.add_argument('--master_port', type=str, default='8888', required=False, 
+    parser.add_argument('--master_port', type=str, default='8002', required=False, 
                         help='Master port for distributed training')
     parser.add_argument('--world_size', type=int, default=4, required=False, 
                         help='Number of processes participating in distributed training')
