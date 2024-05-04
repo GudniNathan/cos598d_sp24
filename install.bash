@@ -2,6 +2,14 @@ apt-get update
 apt-get -y install htop dstat python3-pip
 apt-get -y install libaio-dev
 
+
+cd $HOME
+git clone https://github.com/pytorch/PiPPy/ $HOME/PiPPy
+cd $HOME/PiPPy
+pip3 install -r requirements.txt --find-links https://download.pytorch.org/whl/nightly/cu118/torch_nightly.html
+python setup.py install
+
+
 pip3 install torch torchvision
 pip3 install tqdm boto3 requests regex sentencepiece sacremoses
 pip3 install pytorch-transformers 
