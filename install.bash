@@ -3,14 +3,14 @@ apt-get -y install htop dstat python3-pip
 apt-get -y install libaio-dev
 
 
-pip uninstall -y torch
-pip uninstall -y torch
+# pip uninstall -y torch
+# pip uninstall -y torch
 
-cd $HOME
-git clone https://github.com/pytorch/PiPPy/ $HOME/PiPPy
-cd $HOME/PiPPy
-pip3 install -r requirements.txt --find-links https://download.pytorch.org/whl/nightly/cu118/torch_nightly.html
-python setup.py install
+# cd $HOME
+# git clone https://github.com/pytorch/PiPPy/ $HOME/PiPPy
+# cd $HOME/PiPPy
+# pip3 install -r requirements.txt --find-links https://download.pytorch.org/whl/nightly/cu118/torch_nightly.html
+# python setup.py install
 
 
 pip3 install torch torchvision
