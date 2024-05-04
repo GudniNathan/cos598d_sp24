@@ -3,6 +3,9 @@ apt-get -y install htop dstat python3-pip
 apt-get -y install libaio-dev
 
 
+pip uninstall -y torch
+pip uninstall -y torch
+
 cd $HOME
 git clone https://github.com/pytorch/PiPPy/ $HOME/PiPPy
 cd $HOME/PiPPy
