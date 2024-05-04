@@ -22,12 +22,14 @@ pip3 install deepspeed
 pip3 install transformers
 
 cd $HOME
-git clone https://github.com/NVIDIA/cutlass $HOME/cutlass
+if [ ! -d $HOME/cutlass ]; then
+    git clone https://github.com/NVIDIA/cutlass $HOME/cutlass
+fi 
 export CUTLASS_PATH=$HOME/cutlass
 
 # Download the GLUE data
 if [ ! -d glue_data ]; then
-  # Control will enter here if $DIRECTORY doesn't exist.
+  # Control will enter here if glue_data doesn't exist.
     mkdir glue_data
     cd cos598d_sp24
     python3 download_glue_data.py --data_dir $HOME/glue_data
