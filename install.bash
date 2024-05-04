@@ -26,6 +26,9 @@ git clone https://github.com/NVIDIA/cutlass $HOME/cutlass
 export CUTLASS_PATH=$HOME/cutlass
 
 # Download the GLUE data
-mkdir glue_data
-cd cos598d_sp24
-python3 download_glue_data.py --data_dir $HOME/glue_data
+if [ ! -d glue_data ]; then
+  # Control will enter here if $DIRECTORY doesn't exist.
+    mkdir glue_data
+    cd cos598d_sp24
+    python3 download_glue_data.py --data_dir $HOME/glue_data
+fi
