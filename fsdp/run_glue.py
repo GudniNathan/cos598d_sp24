@@ -447,7 +447,7 @@ def main(args):
         # from_tf=bool('.ckpt' in args.model_name_or_path),
         config=config
     )
-    print("Model loaded.")
+    print("Model loaded at rank", args.local_rank)
     ##################################################
 
     if args.local_rank == 0:
