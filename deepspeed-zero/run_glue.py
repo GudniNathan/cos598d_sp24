@@ -59,6 +59,12 @@ from bert import BertForSequenceClassificationMP, BertArgs
 
 import deepspeed
 
+if os.environ.get("LOCAL_RANK", "0") == "0":
+    from memory_profiler import memory_usage, profile as cpu_profile
+else:
+    # Dummy decorator
+    cpu_profile = lambda x: x
+
 
 from train_utils import *
 
@@ -360,7 +366,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
     return dataset
 
-
+@cpu_profile
 def main(args):
     args.local_rank = int(os.environ.get('LOCAL_RANK', args.local_rank))
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:

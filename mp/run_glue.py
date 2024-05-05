@@ -74,6 +74,8 @@ from torch.profiler import profile, record_function, ProfilerActivity
 # import FullStateDictConfig
 from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 
+from memory_profiler import memory_usage, profile as cpu_profile
+
 from train_utils import *
 from bert import BertForSequenceClassificationMP
 
@@ -367,7 +369,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
     return dataset
 
-
+@cpu_profile
 def main(args):
     args.local_rank = 0 #int(os.environ.get('LOCAL_RANK', args.local_rank))
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
