@@ -31,7 +31,7 @@ def format_metrics_to_gb(item):
     metric_num = round(metric_num, ndigits=4)
     return metric_num
 
-def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None):
+def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None, global_step=None):
     model.train()
     local_rank = int(os.environ['LOCAL_RANK'])
     fsdp_loss = torch.zeros(2).to(local_rank)
@@ -43,6 +43,8 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
             range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
         )
     for step, batch in enumerate(train_loader):
+        if global_step is not None:
+            global_step[0] += 1
         batch = tuple(t.to(args.device) for t in batch)
         inputs = {'input_ids':      batch[0],
                   'attention_mask': batch[1],

@@ -150,7 +150,7 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
         mem_alloc_tracker = []
         mem_reserved_tracker = []
 
-    global_step = 0
+    global_step = [0]
     tr_loss, logging_loss = 0.0, 0.0
     best_val_loss = float("inf")
     curr_val_loss = float("inf")
@@ -165,11 +165,10 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
         torch.distributed.barrier()
         t0 = time.time()
 
-        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
+        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler, global_step=global_step)
         if args.do_eval:
             curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
         # scheduler.step()
-        global_step += 1
         
         if args.local_rank == 0:
 
@@ -229,7 +228,7 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
         ##################################################
     torch.distributed.barrier()
 
-    return global_step, tr_loss / global_step, model
+    return global_step[0], tr_loss / global_step[0], model
 
 
 def evaluate(args, model, tokenizer, prefix=""):
