@@ -165,7 +165,7 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
         torch.distributed.barrier()
         t0 = time.time()
 
-        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler, global_step=global_step)
+        train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler, global_step=global_step)
         if args.do_eval:
             curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
         # scheduler.step()
@@ -175,7 +175,6 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
             print(f"--> epoch {epoch} completed...entering save and stats zone")
 
             dur.append(time.time() - t0)
-            train_acc_tracking.append(train_accuracy.item())
 
             if args.do_eval:
                 val_acc_tracking.append(curr_val_loss.item())

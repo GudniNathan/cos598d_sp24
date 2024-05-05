@@ -43,43 +43,19 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
             range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
         )
     for step, batch in enumerate(train_loader):
-        if global_step is not None:
-            global_step[0] += 1
-        batch = tuple(t.to(args.device) for t in batch)
-        inputs = {'input_ids':      batch[0],
-                  'attention_mask': batch[1],
-                  'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
-                  'labels':         batch[3]}
-        output = model(**inputs)
-        loss = output[0]
-        if args.deepspeed:
-            model.backward(loss)
-        else:
-            if args.fp16:
-                optimizer.backward(loss)
-            else:
-                loss.backward()
-        # torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
-        if args.deepspeed:
-            model.step()
-        else:
-            optimizer.step()
-            optimizer.zero_grad()
-        fsdp_loss[0] += loss.item()
-        fsdp_loss[1] += len(batch)
+        #forward() method
+        loss = model(batch)
+
+        #runs backpropagation
+        model.backward(loss) 
+
+        #weight update
+        model.step()
+        
         if rank==0:
             inner_pbar.update(1)
 
-    dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
-    train_accuracy = fsdp_loss[0] / fsdp_loss[1]
-
-
-    if rank == 0:
-        inner_pbar.close()
-        print(
-                f"Train Epoch: \t{epoch}, Loss: \t{train_accuracy:.4f}"
-            )
-    return train_accuracy
+    return
 
 
 def validation(model, rank, world_size, val_loader):
