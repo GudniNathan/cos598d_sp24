@@ -6,8 +6,10 @@ apt-get -y install libaio-dev
 pip uninstall -y torch
 pip uninstall -y torch
 
-cd $HOME
-git clone https://github.com/pytorch/PiPPy/ $HOME/PiPPy
+if [ ! -d $HOME/PiPPy ]; then
+  cd $HOME
+  git clone https://github.com/pytorch/PiPPy/ $HOME/PiPPy
+fi 
 cd $HOME/PiPPy
 pip3 install -r requirements.txt --find-links https://download.pytorch.org/whl/nightly/cu118/torch_nightly.html
 python setup.py install
