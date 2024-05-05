@@ -70,6 +70,13 @@ from torch.distributed.fsdp.wrap import (
     wrap,
 )
 
+# verify we have FSDP activation support ready by importing:
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+   checkpoint_wrapper,
+   CheckpointImpl,
+   apply_activation_checkpointing,
+)
+
 # import FullStateDictConfig
 from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 
@@ -137,7 +144,17 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             # backward_prefetch=BackwardPrefetch.BACKWARD_POST,
             # sharding_strategy=ShardingStrategy.FULL_SHARD,
             device_id=args.local_rank,
-            # sync_module_states=True,
+            sync_module_states=True,
+            
+        )
+        non_reentrant_wrapper = functools.partial(
+            checkpoint_wrapper,
+            offload_to_cpu=False,
+            checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+        )
+        check_fn = lambda submodule: isinstance(submodule, BertLayer)
+        apply_activation_checkpointing(
+            model, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn
         )
     else:
         model.to(args.device)
@@ -456,7 +473,7 @@ def main(args):
     # If you pass in args.model_name_or_path (e.g. "bert-base-cased"), the model weights file will be downloaded from HuggingFace.
     model = model_class.from_pretrained(
         args.model_name_or_path, 
-        # from_tf=bool('.ckpt' in args.model_name_or_path),
+        from_tf=bool('.ckpt' in args.model_name_or_path),
         config=config
     )
     print("Model loaded at rank", args.local_rank)
