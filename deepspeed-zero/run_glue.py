@@ -49,7 +49,7 @@ from pytorch_transformers import (WEIGHTS_NAME, BertConfig,
 
 from pytorch_transformers import AdamW, WarmupLinearSchedule
 from pytorch_transformers.modeling_bert import BertEncoder, BertLayer, BertAttention, BertIntermediate, BertOutput
-
+from torch.profiler import profile, record_function, ProfilerActivity
 
 from utils_glue import (compute_metrics, convert_examples_to_features,
                         output_modes, processors)
@@ -159,6 +159,17 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
     model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
+    prof = profile(
+        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
+        schedule=torch.profiler.schedule(wait=2, warmup=2, active=6),
+        on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler', worker_name=f'worker{args.local_rank}'),
+        record_shapes=True,
+        profile_memory=True,
+        with_stack=True
+    )
+    if args.profile:
+        prof.start()
+
     for epoch in train_iterator:
         print("Epoch", epoch, "started.") 
         # Deal with distributed training
@@ -220,11 +231,16 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
             print(f"--> total time elapsed: {total_iteration_time} seconds")
             print(f"--> average time per epoch: {total_iteration_time / (epoch+1):.3f} seconds")
             print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
-                
+
+        if args.profile:
+            prof.step()  # Advance the profiler to the next step
+
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         # evaluate(args, fsdp_model, tokenizer)
         ##################################################
+    if args.profile:
+        prof.stop()
     torch.distributed.barrier()
 
     return global_step[0], tr_loss / global_step[0], model
@@ -527,6 +543,7 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
+    parser.add_argument("--profile", action='store_true', default=False,)
     
     parser = deepspeed.add_config_arguments(parser)
     
