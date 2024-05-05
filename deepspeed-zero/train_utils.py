@@ -43,6 +43,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
             range(len(train_loader)), colour="blue", desc="r0 Training Epoch"
         )
     for step, batch in enumerate(train_loader):
+        batch = tuple(t.to(local_rank) for t in batch)
         inputs = {'input_ids':      batch[0],
           'attention_mask': batch[1],
           'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids
