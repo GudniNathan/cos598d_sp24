@@ -273,15 +273,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     torch.distributed.barrier()
 
     if args.local_rank == 0:
-        print("Training complete.")
         print("Total time elapsed:", time.time() - training_start_time)
-        
-        print("Exiting program...")
-        filename="dump_snapshot.pickle"
-        snap = torch.cuda.memory._snapshot()
-        import pickle
-        with open(filename, "wb") as f:
-            pickle.dump(snap, f)
         
 
     return global_step, tr_loss / global_step, model
