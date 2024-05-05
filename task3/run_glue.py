@@ -222,6 +222,13 @@ def train(args, train_dataset, model, tokenizer):
                 print("memory allocated:", mem_alloc_tracker[-1])
                 print("memory reserved:", mem_reserved_tracker[-1])
             print(f"completed save and stats zone...")
+            
+            total_iteration_time += dur[-1]
+            print(f"--> epoch {epoch} completed in {dur[-1]} seconds")
+            print(f"--> total time elapsed: {total_iteration_time} seconds")
+            print(f"--> average time per epoch: {total_iteration_time / (epoch+1):.3f} seconds")
+            print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
+
 
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
