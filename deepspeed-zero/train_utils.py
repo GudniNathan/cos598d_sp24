@@ -50,7 +50,8 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
           'labels':         batch[3]}
 
         #forward() method
-        loss = model(**inputs)
+        output = model(**inputs)
+        loss = output[0]
 
         #runs backpropagation
         model.backward(loss) 
