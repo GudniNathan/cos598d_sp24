@@ -202,34 +202,33 @@ def train(args, train_dataset, model, tokenizer):
                 # if args.max_steps > 0 and global_step[0] > args.max_steps:
                 #     train_iterator.close()
                 #     break
-                        
-                if args.local_rank == 0:
-                    print(f"--> epoch {epoch} completed...entering save and stats zone")
-
-                    dur.append(time.time() - t0)
-                    # train_acc_tracking.append(train_accuracy.item())
-
-                    if args.do_eval:
-                        val_acc_tracking.append(curr_val_loss.item())
-
-                    if args.track_memory:
-                        mem_alloc_tracker.append(
-                            format_metrics_to_gb(torch.cuda.memory_allocated())
-                        )
-                        mem_reserved_tracker.append(
-                            format_metrics_to_gb(torch.cuda.memory_reserved())
-                        )
-                        print("memory allocated:", mem_alloc_tracker[-1])
-                        print("memory reserved:", mem_reserved_tracker[-1])
-                    print(f"completed save and stats zone...")
-
-                ##################################################
-                # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
-                evaluate(args, ddp_model, tokenizer)
-                ##################################################
-
         print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10, header=f"cuda_time_total, rank {args.local_rank}"))
         print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10, header=f"self_cuda_memory_usage, rank {args.local_rank}"))
+        
+        if args.local_rank == 0:
+            print(f"--> epoch {epoch} completed...entering save and stats zone")
+
+            dur.append(time.time() - t0)
+            # train_acc_tracking.append(train_accuracy.item())
+
+            if args.do_eval:
+                val_acc_tracking.append(curr_val_loss)
+
+            if args.track_memory:
+                mem_alloc_tracker.append(
+                    format_metrics_to_gb(torch.cuda.memory_allocated())
+                )
+                mem_reserved_tracker.append(
+                    format_metrics_to_gb(torch.cuda.memory_reserved())
+                )
+                print("memory allocated:", mem_alloc_tracker[-1])
+                print("memory reserved:", mem_reserved_tracker[-1])
+            print(f"completed save and stats zone...")
+
+        ##################################################
+        # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
+        evaluate(args, ddp_model, tokenizer)
+        ##################################################
     
     
     return global_step[0], tr_loss / global_step[0]
