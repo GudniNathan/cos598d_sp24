@@ -407,9 +407,7 @@ def main(args):
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
     # os.environ['MASTER_ADDR'] = args.master_addr
     # os.environ['MASTER_PORT'] = args.master_port
-    os.environ[
-        "TORCH_DISTRIBUTED_DEBUG"
-    ] = "DETAIL"  # set to DETAIL for runtime logging.
+    os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
     print("Master address:", args.master_addr +":" + args.master_port)
     
 
@@ -495,10 +493,10 @@ def main(args):
         print("Training complete.")
         print("Exiting program...")
         filename="dump_snapshot.pickle"
-        snap = torch.cuda.memory._snapshot()
-        import pickle
-        with open(filename, "wb") as f:
-            pickle.dump(snap, f)
+        # snap = torch.cuda.memory._snapshot()
+        # import pickle
+        # with open(filename, "wb") as f:
+        #     pickle.dump(snap, f)
 
 
 if __name__ == "__main__":
