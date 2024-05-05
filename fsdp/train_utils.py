@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 import torch.distributed as dist
 from datetime import datetime
@@ -61,8 +62,11 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         if global_step:
             global_step[0] += 1
 
+    # Record time spent on network operations
+    t0 = time.time()
     dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
     train_accuracy = fsdp_loss[0] / fsdp_loss[1]
+    network_time = time.time() - t0
 
 
     if rank == 0:
@@ -70,7 +74,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         print(
                 f"Train Epoch: \t{epoch}, Loss: \t{train_accuracy:.4f}"
             )
-    return train_accuracy
+    return train_accuracy, network_time
 
 
 def validation(model, rank, world_size, val_loader):
