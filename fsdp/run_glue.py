@@ -262,7 +262,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             print(f"--> epoch {epoch} completed in {dur[-1]} seconds")
             print(f"--> total time elapsed: {total_iteration_time} seconds")
             print(f"--> average time per epoch: {total_iteration_time / (epoch+1)} seconds")
-            print(f"--> average time per iteration: {total_iteration_time / global_step} seconds")
+            print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
         
                   
         ##################################################
