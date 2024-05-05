@@ -300,7 +300,6 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
             # evaluate(args, fsdp_model, tokenizer)
             ##################################################
-    prof.export_chrome_trace("trace.json")
     torch.distributed.barrier()
 
     if args.local_rank == 0:
