@@ -275,7 +275,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         print("Total time elapsed:", time.time() - training_start_time)
         
 
-    return global_step, tr_loss / global_step, model
+    return global_step[0], tr_loss / global_step[0], model
 
 
 def evaluate(args, model, tokenizer, prefix=""):
