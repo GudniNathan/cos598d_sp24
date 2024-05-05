@@ -139,6 +139,7 @@ def train(args, train_dataset, model, tokenizer):
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
 
     for epoch in train_iterator:
+        t0 = time.time()
         with profile(activities=[ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as prof:
             with record_function("model_inference"):
                 # Deal with distributed training
