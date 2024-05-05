@@ -80,7 +80,11 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 )
 from torch.profiler import profile, record_function, ProfilerActivity
 
-from memory_profiler import memory_usage, profile as cpu_profile
+if os.environ.get("LOCAL_RANK", "0") == "0":
+    from memory_profiler import memory_usage, profile as cpu_profile
+else:
+    # Dummy decorator
+    cpu_profile = lambda x: x
 
 # import FullStateDictConfig
 from torch.distributed.fsdp import FullStateDictConfig, StateDictType
