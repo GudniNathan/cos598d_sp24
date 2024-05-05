@@ -261,7 +261,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             total_iteration_time += dur[-1]
             print(f"--> epoch {epoch} completed in {dur[-1]} seconds")
             print(f"--> total time elapsed: {total_iteration_time} seconds")
-            print(f"--> average time per epoch: {total_iteration_time / (epoch+1)} seconds")
+            print(f"--> average time per epoch: {total_iteration_time / (epoch+1):.3f} seconds")
             print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
         
                   
@@ -407,6 +407,9 @@ def main(args):
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
     # os.environ['MASTER_ADDR'] = args.master_addr
     # os.environ['MASTER_PORT'] = args.master_port
+    os.environ[
+        "TORCH_DISTRIBUTED_DEBUG"
+    ] = "DETAIL"  # set to DETAIL for runtime logging.
     print("Master address:", args.master_addr +":" + args.master_port)
     
 
