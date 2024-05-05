@@ -23,7 +23,7 @@ pip3 install scikit-learn
 pip3 install deepspeed
 pip3 install transformers
 pip3 install memory-profiler
-
+pip3 install tensorboard
 
 cd $HOME
 if [ ! -d $HOME/cutlass ]; then
