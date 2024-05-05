@@ -215,9 +215,13 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
                 print(f"--> saving as model name {save_name}")
 
                 # torch.save(cpu_state, save_name)
-        if args.max_steps > 0 and global_step > args.max_steps:
-            train_iterator.close()
-            break
+            # Record epoch time
+        if args.local_rank == 0:
+            total_iteration_time += dur[-1]
+            print(f"--> epoch {epoch} completed in {dur[-1]} seconds")
+            print(f"--> total time elapsed: {total_iteration_time} seconds")
+            print(f"--> average time per epoch: {total_iteration_time / (epoch+1):.3f} seconds")
+            print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
                 
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
