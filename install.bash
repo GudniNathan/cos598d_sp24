@@ -24,6 +24,7 @@ pip3 install deepspeed
 pip3 install transformers
 pip3 install memory-profiler
 pip3 install tensorboard
+pip install torch_tb_profiler
 
 cd $HOME
 if [ ! -d $HOME/cutlass ]; then
