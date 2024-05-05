@@ -26,5 +26,13 @@
         "stage3_param_persistence_threshold": 1e5,
         "reduce_bucket_size": 1e7,
         "sub_group_size": 1e9
+    },
+    "activation_checkpointing": {
+        "partition_activations": true,
+        "cpu_checkpointing": true,
+        "contiguous_memory_optimization": true,
+        "number_checkpoints": null,
+        "synchronize_checkpoint_boundary": true,
+        "profile": false
     }
 }
