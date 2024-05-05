@@ -32,7 +32,7 @@ def format_metrics_to_gb(item):
     return metric_num
 
 def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None, global_step=None):
-    # model.train()
+    model.train()
     local_rank = int(os.environ['LOCAL_RANK'])
     fsdp_loss = torch.zeros(2).to(local_rank)
   
