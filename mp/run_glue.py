@@ -170,7 +170,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         prof.start()
 
 
-    global_step = 0
+    global_step = [0]
     tr_loss, logging_loss = 0.0, 0.0
     best_val_loss = float("inf")
     curr_val_loss = float("inf")
@@ -185,11 +185,10 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         #torch.distributed.barrier()
         t0 = time.time()
 
-        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
+        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler, global_step=global_step)
         if args.do_eval:
             curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
         scheduler.step()
-        global_step += 1
         
         if args.local_rank == 0:
 
@@ -235,9 +234,13 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
                 print(f"--> saving as model name {save_name}")
 
                 torch.save(cpu_state, save_name)
-        if args.max_steps > 0 and global_step > args.max_steps:
-            train_iterator.close()
-            break
+
+        if args.local_rank == 0:
+            total_iteration_time += dur[-1]
+            print(f"--> epoch {epoch} completed in {dur[-1]} seconds")
+            print(f"--> total time elapsed: {total_iteration_time} seconds")
+            print(f"--> average time per epoch: {total_iteration_time / (epoch+1):.3f} seconds")
+            print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
                 
         if args.profile:
             prof.step()  # Advance the profiler to the next step
@@ -249,7 +252,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     #torch.distributed.barrier()
     if args.profile:
         prof.stop()
-    return global_step, tr_loss / global_step, model
+    return global_step[0], tr_loss / global_step[0], model
 
 
 def evaluate(args, model, tokenizer, prefix=""):
