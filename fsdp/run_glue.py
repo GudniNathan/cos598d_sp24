@@ -257,11 +257,32 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             train_iterator.close()
             break
                 
+        # Record epoch time
+        if args.local_rank == 0:
+            total_iteration_time += dur[-1]
+            print(f"--> epoch {epoch} completed in {dur[-1]} seconds")
+            print(f"--> total time elapsed: {total_iteration_time} seconds")
+            print(f"--> average time per epoch: {total_iteration_time / (epoch+1)} seconds")
+            print(f"--> average time per iteration: {total_iteration_time / global_step} seconds")
+        
+                  
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         # evaluate(args, fsdp_model, tokenizer)
         ##################################################
     torch.distributed.barrier()
+
+    if args.local_rank == 0:
+        print("Training complete.")
+        print("Total time elapsed:", time.time() - training_start_time)
+        
+        print("Exiting program...")
+        filename="dump_snapshot.pickle"
+        snap = torch.cuda.memory._snapshot()
+        import pickle
+        with open(filename, "wb") as f:
+            pickle.dump(snap, f)
+        
 
     return global_step, tr_loss / global_step, model
 
