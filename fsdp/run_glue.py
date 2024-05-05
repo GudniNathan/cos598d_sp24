@@ -142,7 +142,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     if True:
         model = FSDP(
             model,
-            cpu_offload=CPUOffload(True),
+            cpu_offload=CPUOffload(args.cpu_offload),
             auto_wrap_policy=my_auto_wrap_policy,
             # backward_prefetch=BackwardPrefetch.BACKWARD_POST,
             # sharding_strategy=ShardingStrategy.FULL_SHARD,
@@ -150,15 +150,16 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             sync_module_states=True,
             
         )
-        non_reentrant_wrapper = functools.partial(
-            checkpoint_wrapper,
-            # offload_to_cpu=False,
-            checkpoint_impl=CheckpointImpl.NO_REENTRANT,
-        )
-        check_fn = lambda submodule: isinstance(submodule, BertLayer)
-        apply_activation_checkpointing(
-            model, checkpoint_wrapper_fn=offload_wrapper, check_fn=check_fn
-        )
+        if args.activation_checkpointing:
+            non_reentrant_wrapper = functools.partial(
+                checkpoint_wrapper,
+                checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+            )
+            check_fn = lambda submodule: isinstance(submodule, BertLayer)
+            wrapper = offload_wrapper if args.cpu_offload else non_reentrant_wrapper
+            apply_activation_checkpointing(
+                model, checkpoint_wrapper_fn=wrapper, check_fn=check_fn
+            )
     else:
         model.to(args.device)
         model = DDP(model)
@@ -602,6 +603,8 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
+    parser.add_argument("--activation_checkpointing", action='store_true', default=False,)
+    parser.add_argument("--cpu_offload", action='store_true', default=True,)
     args = parser.parse_args()
     args.eval_batch_size = args.per_gpu_eval_batch_size
 
