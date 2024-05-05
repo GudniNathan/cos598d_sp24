@@ -69,6 +69,8 @@ from torch.distributed.fsdp.wrap import (
     wrap,
 )
 
+from torch.profiler import profile, record_function, ProfilerActivity
+
 # import FullStateDictConfig
 from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 
@@ -156,6 +158,18 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         mem_alloc_tracker = []
         mem_reserved_tracker = []
 
+    if args.profile:
+        prof = profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
+            schedule=torch.profiler.schedule(wait=2, warmup=2, active=36),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler', worker_name=f'worker{args.local_rank}'),
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True
+        )
+        prof.start()
+
+
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
     best_val_loss = float("inf")
@@ -225,12 +239,16 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             train_iterator.close()
             break
                 
+        if args.profile:
+            prof.step()  # Advance the profiler to the next step
+
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         # evaluate(args, fsdp_model, tokenizer)
         ##################################################
     #torch.distributed.barrier()
-
+    if args.profile:
+        prof.stop()
     return global_step, tr_loss / global_step, model
 
 
@@ -529,6 +547,9 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
+    parser.add_argument('--profile', action='store_false', default=True,
+                        help='For profiling the training process')
+
     args = parser.parse_args()
     args.eval_batch_size = args.per_gpu_eval_batch_size
 

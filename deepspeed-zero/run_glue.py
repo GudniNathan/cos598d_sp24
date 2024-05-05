@@ -159,15 +159,15 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
     model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-    prof = profile(
-        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
-        schedule=torch.profiler.schedule(wait=2, warmup=2, active=6),
-        on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler', worker_name=f'worker{args.local_rank}'),
-        record_shapes=True,
-        profile_memory=True,
-        with_stack=True
-    )
     if args.profile:
+        prof = profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
+            schedule=torch.profiler.schedule(wait=2, warmup=2, active=6),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler', worker_name=f'worker{args.local_rank}'),
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True
+        )
         prof.start()
 
     for epoch in train_iterator:
