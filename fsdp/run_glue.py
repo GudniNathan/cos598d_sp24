@@ -150,7 +150,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         non_reentrant_wrapper = functools.partial(
             checkpoint_wrapper,
             # offload_to_cpu=False,
-            checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+            checkpoint_impl=CheckpointImpl.REENTRANT,
         )
         check_fn = lambda submodule: isinstance(submodule, BertLayer)
         apply_activation_checkpointing(
