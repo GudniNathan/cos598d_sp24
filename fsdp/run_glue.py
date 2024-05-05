@@ -73,6 +73,7 @@ from torch.distributed.fsdp.wrap import (
 # verify we have FSDP activation support ready by importing:
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
    checkpoint_wrapper,
+   offload_wrapper,
    CheckpointImpl,
    apply_activation_checkpointing,
 )
@@ -148,7 +149,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             
         )
         non_reentrant_wrapper = functools.partial(
-            checkpoint_wrapper,
+            offload_wrapper,
             # offload_to_cpu=False,
             checkpoint_impl=CheckpointImpl.NO_REENTRANT,
         )
