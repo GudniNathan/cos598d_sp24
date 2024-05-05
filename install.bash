@@ -13,7 +13,7 @@ pip3 install -r requirements.txt --find-links https://download.pytorch.org/whl/n
 python setup.py install
 
 
-pip3 install torchvision
+# pip3 install torchvision
 pip3 install tqdm boto3 requests regex sentencepiece sacremoses
 pip3 install pytorch-transformers 
 pip3 install scipy
