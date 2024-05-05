@@ -53,7 +53,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         output = model(**inputs)
         loss = output[0]
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+        model.clip_grad_norm_(args.max_grad_norm)
         optimizer.step()
         fsdp_loss[0] += loss.item()
         fsdp_loss[1] += len(batch)
