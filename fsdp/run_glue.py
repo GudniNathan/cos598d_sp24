@@ -78,8 +78,9 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
    CheckpointImpl,
    apply_activation_checkpointing,
 )
+from torch.profiler import profile, record_function, ProfilerActivity
 
-from memory_profiler import memory_usage, profile
+from memory_profiler import memory_usage, profile as cpu_profile
 
 # import FullStateDictConfig
 from torch.distributed.fsdp import FullStateDictConfig, StateDictType
@@ -219,78 +220,86 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     optimizer.zero_grad(set_to_none=True)
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-    for epoch in train_iterator:
-        print("Epoch", epoch, "started.") 
-        # Deal with distributed training
-        torch.distributed.barrier()
-        t0 = time.time()
+    with profile(
+        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
+        schedule=torch.profiler.schedule(wait=2, warmup=2, active=6, repeat=2),
+        on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler'),
+        record_shapes=True,
+        profile_memory=True,
+        with_stack=True
+    ) as prof:
+        for epoch in train_iterator:
+            print("Epoch", epoch, "started.") 
+            # Deal with distributed training
+            torch.distributed.barrier()
+            t0 = time.time()
 
-        train_accuracy, network_time = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler, global_step=global_step)
-        if args.do_eval:
-            curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
-        scheduler.step()
-        
-        if args.local_rank == 0:
-
-            print(f"--> epoch {epoch} completed...entering save and stats zone")
-
-            dur.append(time.time() - t0)
-            train_acc_tracking.append(train_accuracy.item())
-
+            train_accuracy, network_time = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler, global_step=global_step)
             if args.do_eval:
-                val_acc_tracking.append(curr_val_loss.item())
-
-            if args.track_memory:
-                mem_alloc_tracker.append(
-                    format_metrics_to_gb(torch.cuda.memory_allocated())
-                )
-                mem_reserved_tracker.append(
-                    format_metrics_to_gb(torch.cuda.memory_reserved())
-                )
-                print("memory allocated:", mem_alloc_tracker[-1])
-                print("memory reserved:", mem_reserved_tracker[-1])
-            print(f"completed save and stats zone...")
-        
-        if args.save_model and curr_val_loss < best_val_loss:
-            # save
+                curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
+            scheduler.step()
+            
             if args.local_rank == 0:
-                print(f"--> entering save model state")
 
-            save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-            with FSDP.state_dict_type(
-                model, StateDictType.FULL_STATE_DICT, save_policy
-            ):
-                cpu_state = model.state_dict()
-            #print(f"saving process: rank {rank}  done w state_dict")
+                print(f"--> epoch {epoch} completed...entering save and stats zone")
+
+                dur.append(time.time() - t0)
+                train_acc_tracking.append(train_accuracy.item())
+
+                if args.do_eval:
+                    val_acc_tracking.append(curr_val_loss.item())
+
+                if args.track_memory:
+                    mem_alloc_tracker.append(
+                        format_metrics_to_gb(torch.cuda.memory_allocated())
+                    )
+                    mem_reserved_tracker.append(
+                        format_metrics_to_gb(torch.cuda.memory_reserved())
+                    )
+                    print("memory allocated:", mem_alloc_tracker[-1])
+                    print("memory reserved:", mem_reserved_tracker[-1])
+                print(f"completed save and stats zone...")
+            
+            if args.save_model and curr_val_loss < best_val_loss:
+                # save
+                if args.local_rank == 0:
+                    print(f"--> entering save model state")
+
+                save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
+                with FSDP.state_dict_type(
+                    model, StateDictType.FULL_STATE_DICT, save_policy
+                ):
+                    cpu_state = model.state_dict()
+                #print(f"saving process: rank {rank}  done w state_dict")
 
 
+                if args.local_rank == 0:
+                    print(f"--> saving model ...")
+                    currEpoch = (
+                        "-" + str(epoch) + "-" + str(round(curr_val_loss.item(), 4)) + ".pt"
+                    )
+                    print(f"--> attempting to save model prefix {currEpoch}")
+                    save_name = file_save_name + "-" + time_of_run + "-" + currEpoch
+                    print(f"--> saving as model name {save_name}")
+
+                    torch.save(cpu_state, save_name)
+            # if args.max_steps > 0 and global_step > args.max_steps:
+            #     train_iterator.close()
+            #     break
+                    
+            # Record epoch time
             if args.local_rank == 0:
-                print(f"--> saving model ...")
-                currEpoch = (
-                    "-" + str(epoch) + "-" + str(round(curr_val_loss.item(), 4)) + ".pt"
-                )
-                print(f"--> attempting to save model prefix {currEpoch}")
-                save_name = file_save_name + "-" + time_of_run + "-" + currEpoch
-                print(f"--> saving as model name {save_name}")
-
-                torch.save(cpu_state, save_name)
-        # if args.max_steps > 0 and global_step > args.max_steps:
-        #     train_iterator.close()
-        #     break
-                
-        # Record epoch time
-        if args.local_rank == 0:
-            total_iteration_time += dur[-1]
-            print(f"--> epoch {epoch} completed in {dur[-1]} seconds")
-            print(f"--> total time elapsed: {total_iteration_time} seconds")
-            print(f"--> average time per epoch: {total_iteration_time / (epoch+1):.3f} seconds")
-            print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
-        
-                  
-        ##################################################
-        # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
-        # evaluate(args, fsdp_model, tokenizer)
-        ##################################################
+                total_iteration_time += dur[-1]
+                print(f"--> epoch {epoch} completed in {dur[-1]} seconds")
+                print(f"--> total time elapsed: {total_iteration_time} seconds")
+                print(f"--> average time per epoch: {total_iteration_time / (epoch+1):.3f} seconds")
+                print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
+            
+            prof.step()  # Advance the profiler to the next step
+            ##################################################
+            # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
+            # evaluate(args, fsdp_model, tokenizer)
+            ##################################################
     torch.distributed.barrier()
 
     if args.local_rank == 0:
@@ -415,7 +424,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     return dataset
 
 
-@profile
+@cpu_profile
 def main(args):
     args.local_rank = int(os.environ.get('LOCAL_RANK', args.local_rank))
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
