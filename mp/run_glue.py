@@ -102,7 +102,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     print("Starting training...")
 
     args.train_batch_size = args.per_gpu_train_batch_size
-    train_sampler = DistributedSampler(train_dataset, num_replicas=args.world_size, rank=args.local_rank)
+    train_sampler = DistributedSampler(train_dataset, num_replicas=1, rank=0)
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=args.train_batch_size,
                                   num_workers=args.world_size, pin_memory=True, shuffle=False)
     
