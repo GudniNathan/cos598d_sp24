@@ -11,7 +11,7 @@ if [ ! -d $HOME/PiPPy ]; then
   git clone https://github.com/pytorch/PiPPy/ $HOME/PiPPy
 fi 
 cd $HOME/PiPPy
-pip3 install -r requirements.txt --find-links https://download.pytorch.org/whl/nightly/cu118/torch_nightly.html
+pip3 install -r requirements.txt --find-links https://download.pytorch.org/whl/nightly/cu121/torch_nightly.html
 python setup.py install
 
 
