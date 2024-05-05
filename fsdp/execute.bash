@@ -3,6 +3,7 @@ git pull
 export GLUE_DIR=$HOME/glue_data
 export TASK_NAME=RTE
 export WORLD_SIZE=4
+export TORCH_DISTRIBUTED_DEBUG=DETAIL
 
 torchrun --nproc_per_node 4 run_glue.py \
   --model_type bert \
