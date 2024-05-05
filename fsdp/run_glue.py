@@ -393,8 +393,8 @@ def main(args):
     if args.local_rank == 0 and args.track_memory:        
         torch.cuda.memory._record_memory_history(enabled='all', context='all', stacks='all', max_entries=9223372036854775807)
     # Set the environment variables MASTER_ADDR and MASTER_PORT to the appropriate values
-    os.environ['MASTER_ADDR'] = args.master_addr
-    os.environ['MASTER_PORT'] = args.master_port
+    # os.environ['MASTER_ADDR'] = args.master_addr
+    # os.environ['MASTER_PORT'] = args.master_port
     print("Master address:", args.master_addr +":" + args.master_port)
     
 
