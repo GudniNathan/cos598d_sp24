@@ -78,6 +78,8 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
    apply_activation_checkpointing,
 )
 
+from memory_profiler import memory_usage, profile
+
 # import FullStateDictConfig
 from torch.distributed.fsdp import FullStateDictConfig, StateDictType
 
@@ -104,6 +106,7 @@ def set_seed(args):
     torch.cuda.manual_seed_all(args.seed)
     
 
+@profile
 def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     """ Train the model """
     
@@ -488,7 +491,6 @@ def main(args):
 
 
     logger.info("Training/evaluation parameters %s", args)
-
 
     # Training
     if args.do_train:
