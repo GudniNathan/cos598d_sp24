@@ -18,6 +18,18 @@
         "initial_scale_power": 16
     },
     "zero_optimization": {
-        "stage": 3
+        "stage": 3,
+        "contiguous_gradients": true,
+        "overlap_comm": true,
+        "offload_optimizer": {
+            "device": "cpu",
+            "pin_memory": true,
+            "ratio": 0.3,
+            "buffer_count": 4,
+            "fast_init": false
+        },
+        "offload_param": {
+            "device": "cpu"
+        }
     }
 }
