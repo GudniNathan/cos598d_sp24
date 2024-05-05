@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ Finetuning the library models for sequence classification on GLUE (Bert, XLM, XLNet, RoBERTa)."""
+from __future__ import absolute_import, division, print_function
 import os
 os.environ['TORCH_DISTRIBUTED_DEBUG'] = 'DETAIL'
 
-from __future__ import absolute_import, division, print_function
 
 import argparse
 import datetime
