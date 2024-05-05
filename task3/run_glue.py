@@ -164,15 +164,13 @@ def train(args, train_dataset, model, tokenizer):
             if args.fp16:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
-                ddp_model.clip_grad_norm(args.max_grad_norm)
-                #torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+                torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
             else:
                 ##################################################
                 # TODO(cos598d): perform backward pass here
                 loss.backward()
                 ##################################################
-                ddp_model.clip_grad_norm(args.max_grad_norm)
-                #torch.nn.utils.clip_grad_norm_(ddp_model.parameters(), args.max_grad_norm)
+                torch.nn.utils.clip_grad_norm_(ddp_model.parameters(), args.max_grad_norm)
 
 
             tr_loss += loss.item()
