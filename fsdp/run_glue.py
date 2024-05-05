@@ -188,7 +188,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         mem_alloc_tracker = []
         mem_reserved_tracker = []
 
-    global_step = 0
+    global_step = [0]
     tr_loss, logging_loss = 0.0, 0.0
     best_val_loss = float("inf")
     curr_val_loss = float("inf")
@@ -203,11 +203,10 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         torch.distributed.barrier()
         t0 = time.time()
 
-        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler)
+        train_accuracy = train(args, model, args.local_rank, args.world_size, train_dataloader, optimizer, epoch, sampler=train_sampler, global_step=global_step)
         if args.do_eval:
             curr_val_loss = validation(model, args.local_rank, args.world_size, eval_dataloader)
         scheduler.step()
-        global_step += 1
         
         if args.local_rank == 0:
 
@@ -253,9 +252,9 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
                 print(f"--> saving as model name {save_name}")
 
                 torch.save(cpu_state, save_name)
-        if args.max_steps > 0 and global_step > args.max_steps:
-            train_iterator.close()
-            break
+        # if args.max_steps > 0 and global_step > args.max_steps:
+        #     train_iterator.close()
+        #     break
                 
         # Record epoch time
         if args.local_rank == 0:

@@ -31,7 +31,7 @@ def format_metrics_to_gb(item):
     metric_num = round(metric_num, ndigits=4)
     return metric_num
 
-def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None):
+def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None, global_step=None):
     model.train()
     local_rank = int(os.environ['LOCAL_RANK'])
     fsdp_loss = torch.zeros(2).to(local_rank)
@@ -58,6 +58,8 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         fsdp_loss[1] += len(batch)
         if rank==0:
             inner_pbar.update(1)
+        if global_step:
+            global_step[0] += 1
 
     dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
     train_accuracy = fsdp_loss[0] / fsdp_loss[1]
