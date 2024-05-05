@@ -106,7 +106,6 @@ def set_seed(args):
     torch.cuda.manual_seed_all(args.seed)
     
 
-@profile
 def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     """ Train the model """
     
@@ -414,6 +413,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     return dataset
 
 
+@profile
 def main(args):
     args.local_rank = int(os.environ.get('LOCAL_RANK', args.local_rank))
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
