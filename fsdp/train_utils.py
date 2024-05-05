@@ -34,7 +34,7 @@ def format_metrics_to_gb(item):
 def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler=None, global_step=None):
     model.train()
     local_rank = int(os.environ['LOCAL_RANK'])
-    fsdp_loss = torch.zeros(2).to(local_rank)
+    fsdp_loss = torch.zeros(2, device=local_rank)
   
     if sampler:
         sampler.set_epoch(epoch)
@@ -44,7 +44,7 @@ def train(args, model, rank, world_size, train_loader, optimizer, epoch, sampler
         )
     for step, batch in enumerate(train_loader):
         batch = tuple(t.to(local_rank) for t in batch)
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
         inputs = {'input_ids':      batch[0],
                   'attention_mask': batch[1],
                   'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,  # XLM don't use segment_ids

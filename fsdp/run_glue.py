@@ -194,7 +194,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
     curr_val_loss = float("inf")
     file_save_name = f"{args.model_type}-{args.task_name}-model-"
     total_iteration_time = 0
-    model.zero_grad()
+    optimizer.zero_grad(set_to_none=True)
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
     for epoch in train_iterator:
