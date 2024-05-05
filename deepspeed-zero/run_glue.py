@@ -420,6 +420,7 @@ def main(args):
         # from_tf=bool('.ckpt' in args.model_name_or_path),
         config=config
     )
+    model.gradient_checkpointing_enable()
     print("Model loaded.")
     ##################################################
 
