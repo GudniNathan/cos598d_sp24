@@ -53,6 +53,7 @@ from utils_glue import (compute_metrics, convert_examples_to_features,
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from torch.profiler import profile, record_function, ProfilerActivity
+from train_utils import format_metrics_to_gb, get_date_of_run
 
 logger = logging.getLogger(__name__)
 
@@ -114,9 +115,25 @@ def train(args, train_dataset, model, tokenizer):
     logger.info("  Gradient Accumulation steps = %d", args.gradient_accumulation_steps)
     logger.info("  Total optimization steps = %d", t_total)
 
-    global_step = 0
+    if args.local_rank == 0:
+        time_of_run = get_date_of_run()
+        dur = []
+        train_acc_tracking = []
+        val_acc_tracking = []
+        training_start_time = time.time()
+
+    if args.local_rank == 0 and args.track_memory:
+        mem_alloc_tracker = []
+        mem_reserved_tracker = []
+
     tr_loss, logging_loss = 0.0, 0.0
     total_iteration_time = 0
+    global_step = [0]
+    tr_loss, logging_loss = 0.0, 0.0
+    best_val_loss = float("inf")
+    curr_val_loss = float("inf")
+    file_save_name = f"{args.model_type}-{args.task_name}-model-"
+
     ddp_model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
@@ -167,24 +184,44 @@ def train(args, train_dataset, model, tokenizer):
                         # logger.info("Optimization step done.")
                         ##################################################
                         ddp_model.zero_grad()
-                        global_step += 1
+                        global_step[0] += 1
                     
                     # Record the loss values of the first five minibatches 
                     # by printing the loss value after every iteration
-                    if global_step <= 5:
-                        logger.info(" \tLoss value at iteration %d: %f", global_step, tr_loss)
-                    if 1 < global_step <= 40:
+                    if global_step[0] <= 5:
+                        logger.info(" \tLoss value at iteration %d: %f", global_step[0], tr_loss)
+                    if 1 < global_step[0] <= 40:
                         total_iteration_time += time.time() - iteration_time
-                        average_elapsed_time = total_iteration_time / (global_step - 1)
-                        print(" \tAverage elapsed time per iteration:", f"{average_elapsed_time:.4f}", "at iteration ", global_step)
+                        average_elapsed_time = total_iteration_time / (global_step[0] - 1)
+                        print(" \tAverage elapsed time per iteration:", f"{average_elapsed_time:.4f}", "at iteration ", global_step[0])
 
-                    if args.max_steps > 0 and global_step > args.max_steps:
-                        epoch_iterator.close()
-                        break
-                if args.max_steps > 0 and global_step > args.max_steps:
-                    train_iterator.close()
-                    break
+                    # if args.max_steps > 0 and global_step[0] > args.max_steps:
+                    #     epoch_iterator.close()
+                    #     break
+                # if args.max_steps > 0 and global_step[0] > args.max_steps:
+                #     train_iterator.close()
+                #     break
                         
+                if args.local_rank == 0:
+                    print(f"--> epoch {epoch} completed...entering save and stats zone")
+
+                    dur.append(time.time() - t0)
+                    # train_acc_tracking.append(train_accuracy.item())
+
+                    if args.do_eval:
+                        val_acc_tracking.append(curr_val_loss.item())
+
+                    if args.track_memory:
+                        mem_alloc_tracker.append(
+                            format_metrics_to_gb(torch.cuda.memory_allocated())
+                        )
+                        mem_reserved_tracker.append(
+                            format_metrics_to_gb(torch.cuda.memory_reserved())
+                        )
+                        print("memory allocated:", mem_alloc_tracker[-1])
+                        print("memory reserved:", mem_reserved_tracker[-1])
+                    print(f"completed save and stats zone...")
+
                 ##################################################
                 # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
                 evaluate(args, ddp_model, tokenizer)
@@ -194,7 +231,7 @@ def train(args, train_dataset, model, tokenizer):
         print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10, header=f"self_cuda_memory_usage, rank {args.local_rank}"))
     
     
-    return global_step, tr_loss / global_step
+    return global_step[0], tr_loss / global_step[0]
 
 
 def evaluate(args, model, tokenizer, prefix=""):
@@ -474,7 +511,7 @@ def main():
     if args.do_train:
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
-        logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
+        logger.info(" global_step[0] = %s, average loss = %s", global_step, tr_loss)
 
     # Evaluation
     evaluate(args, model, tokenizer, prefix="")
