@@ -245,11 +245,13 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         # evaluate(args, fsdp_model, tokenizer)
         ##################################################
-    torch.distributed.barrier()
+    for i in range(args.rank):
+        torch.distributed.barrier()
     if args.profile:
-        print("Stopping profiler...")
-        torch.distributed.destroy_process_group()
+        print("Stopping profiler at rank", args.rank)
         prof.stop()
+    for i in range(args.world_size - args.rank):
+        torch.distributed.barrier()
 
     return global_step[0], tr_loss / global_step[0], model
 
