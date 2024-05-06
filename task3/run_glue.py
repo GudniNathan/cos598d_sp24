@@ -249,7 +249,11 @@ def train(args, train_dataset, model, tokenizer):
 
     
         if args.profile:
+            torch.distributed.barrier()
+            print("Performing profiling step on rank", args.local_rank)
             prof.step()
+            print("Profiling step on rank", args.local_rank, "completed.")
+            torch.distributed.barrier()
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         # evaluate(args, ddp_model, tokenizer)
