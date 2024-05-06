@@ -316,7 +316,12 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
         print("Rank ", args.local_rank, "reached final profiler barrier")
         prof.stop()
         print("Rank ", args.local_rank, "stopped profiler")
-        torch.distributed.monitored_barrier(timeout=timedelta(seconds=600))
+        while True:
+            try:
+                torch.distributed.barrier()
+                break
+            except:
+                pass
     torch.distributed.barrier()
 
     if args.local_rank == 0:
