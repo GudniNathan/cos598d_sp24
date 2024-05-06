@@ -385,7 +385,12 @@ def main(args):
     
 
     print("Initializing distributed training...")
-    torch.distributed.init_process_group(rank=args.local_rank, world_size=args.world_size, backend="nccl", timeout=timedelta(seconds=60))
+    torch.distributed.init_process_group(
+        rank=args.local_rank,
+        world_size=args.world_size,
+        backend="nccl",
+        timeout=timedelta(seconds=1200)
+    )
     
 
     print("Distributed training with rank", args.local_rank, "and world size", args.world_size)
@@ -551,7 +556,7 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
-    parser.add_argument("--profile", action='store_true', default=False,)
+    parser.add_argument("--profile", action='store_true', default=True,)
     
     parser = deepspeed.add_config_arguments(parser)
     
