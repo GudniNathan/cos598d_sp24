@@ -302,13 +302,21 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
             print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
         
         if args.profile:
+            torch.distributed.barrier()
+            print("Rank ", args.local_rank, "reached profiler barrier")
             prof.step()  # Advance the profiler to the next step
+            print("Rank ", args.local_rank, "advanced profiler step")
+            torch.distributed.barrier()
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         # evaluate(args, fsdp_model, tokenizer)
         ##################################################
     if args.profile:
+        torch.distributed.barrier()
+        print("Rank ", args.local_rank, "reached final profiler barrier")
         prof.stop()
+        print("Rank ", args.local_rank, "stopped profiler")
+        torch.distributed.barrier()
     torch.distributed.barrier()
 
     if args.local_rank == 0:
