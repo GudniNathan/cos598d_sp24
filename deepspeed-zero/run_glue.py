@@ -247,6 +247,7 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
             torch.distributed.barrier()
         print("Stopping profiler at rank", args.local_rank)
     print("Profiler stopped at rank", args.local_rank)
+    prof = None
     for i in range(args.world_size - args.local_rank):
         torch.distributed.barrier()
 
