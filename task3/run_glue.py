@@ -140,22 +140,21 @@ def train(args, train_dataset, model, tokenizer):
     best_val_loss = float("inf")
     curr_val_loss = float("inf")
     file_save_name = f"{args.model_type}-{args.task_name}-model-"
-    
+
+    ddp_model.zero_grad()
+    train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
+    set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
+
     if args.profile:
         prof = profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
-            schedule=torch.profiler.schedule(wait=2, warmup=2, active=36),
+            schedule=torch.profiler.schedule(wait=2, warmup=2, active=6),
             on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler', worker_name=f'worker{args.local_rank}'),
             record_shapes=True,
             profile_memory=True,
             with_stack=True
         )
         prof.start()
-
-
-    ddp_model.zero_grad()
-    train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
-    set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
 
     for epoch in train_iterator:
         t0 = time.time()
@@ -258,6 +257,7 @@ def train(args, train_dataset, model, tokenizer):
     
     if args.profile:
         prof.stop()
+    torch.distributed.barrier()
 
     return global_step[0], tr_loss / global_step[0]
 
