@@ -465,7 +465,7 @@ def main(args):
         rank=args.local_rank,
         world_size=args.world_size,
         backend="nccl",
-        timeout=timedelta(seconds=600),
+        timeout=timedelta(seconds=1200),
     )
     
 
