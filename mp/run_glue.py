@@ -84,7 +84,7 @@ logger = logging.getLogger(__name__)
 ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig, RobertaConfig)), ())
 
 MODEL_CLASSES = {
-    'bert': (BertConfig, BertForSequenceClassificationMP, BertTokenizer),
+    'bert': (BertConfig, BertForSequenceClassification, BertTokenizer),
     'xlnet': (XLNetConfig, XLNetForSequenceClassification, XLNetTokenizer),
     'xlm': (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
     'roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
@@ -444,6 +444,7 @@ def main(args):
 
     # Training
     if args.do_train:
+        model.to(0)
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         eval_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=True)
 
