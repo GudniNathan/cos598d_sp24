@@ -629,7 +629,7 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
-    parser.add_argument("--activation_checkpointing", action='store_true', default=False,)
+    parser.add_argument("--activation_checkpointing", action='store_true', default=True,)
     parser.add_argument("--cpu_offload", action='store_true', default=False,)
     parser.add_argument("--profile", action='store_true', default=False,)
     args = parser.parse_args()
