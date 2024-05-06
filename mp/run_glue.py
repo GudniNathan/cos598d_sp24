@@ -84,7 +84,7 @@ logger = logging.getLogger(__name__)
 ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig, RobertaConfig)), ())
 
 MODEL_CLASSES = {
-    'bert': (BertConfig, BertForSequenceClassification, BertTokenizer),
+    'bert': (BertConfig, BertForSequenceClassificationMP, BertTokenizer),
     'xlnet': (XLNetConfig, XLNetForSequenceClassification, XLNetTokenizer),
     'xlm': (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
     'roberta': (RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer),
@@ -444,7 +444,6 @@ def main(args):
 
     # Training
     if args.do_train:
-        model.to(0)
         train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         eval_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=True)
 
@@ -553,7 +552,7 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
-    parser.add_argument('--profile', action='store_false', default=True,
+    parser.add_argument('--profile', action='store_false', default=False,
                         help='For profiling the training process')
 
     args = parser.parse_args()

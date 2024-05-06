@@ -53,6 +53,13 @@ from utils_glue import (compute_metrics, convert_examples_to_features,
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from torch.profiler import profile, record_function, ProfilerActivity
+from memory_profiler import memory_usage, profile as cpu_profile
+if os.environ.get("LOCAL_RANK", "0") == "0":
+    from memory_profiler import memory_usage, profile as cpu_profile
+else:
+    # Dummy decorator
+    cpu_profile = lambda x: x
+
 from train_utils import format_metrics_to_gb, get_date_of_run
 
 logger = logging.getLogger(__name__)
@@ -133,6 +140,18 @@ def train(args, train_dataset, model, tokenizer):
     best_val_loss = float("inf")
     curr_val_loss = float("inf")
     file_save_name = f"{args.model_type}-{args.task_name}-model-"
+    
+    if args.profile:
+        prof = profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
+            schedule=torch.profiler.schedule(wait=2, warmup=2, active=36),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profiler', worker_name=f'worker{args.local_rank}'),
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True
+        )
+        prof.start()
+
 
     ddp_model.zero_grad()
     train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
@@ -229,13 +248,17 @@ def train(args, train_dataset, model, tokenizer):
             print(f"--> average time per epoch: {total_iteration_time / (epoch+1):.3f} seconds")
             print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
 
-
+    
+        if args.profile:
+            prof.step()
         ##################################################
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
-        evaluate(args, ddp_model, tokenizer)
+        # evaluate(args, ddp_model, tokenizer)
         ##################################################
     
-    
+    if args.profile:
+        prof.stop()
+
     return global_step[0], tr_loss / global_step[0]
 
 
@@ -354,7 +377,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
     return dataset
 
-
+@cpu_profile
 def main():
     print("Starting program...")
     parser = argparse.ArgumentParser()
@@ -438,6 +461,8 @@ def main():
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
+    parser.add_argument('--profile', action='store_false', default=False,
+                        help='For profiling the training process')
 
     args = parser.parse_args()
     
