@@ -321,6 +321,7 @@ def fsdp_main(args, train_dataset, eval_dataset, model, tokenizer):
                 torch.distributed.barrier()
                 break
             except:
+                print('timeout error')
                 pass
     torch.distributed.barrier()
 
