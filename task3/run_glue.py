@@ -254,7 +254,7 @@ def train(args, train_dataset, model, tokenizer):
         # TODO(cos598d): call evaluate() here to get the model performance after every epoch.
         # evaluate(args, ddp_model, tokenizer)
         ##################################################
-    
+    print("Training complete on rank", args.local_rank)
     if args.profile:
         prof.stop()
     torch.distributed.barrier()
