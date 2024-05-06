@@ -377,7 +377,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
     return dataset
 
-@cpu_profile
+# @cpu_profile
 def main():
     print("Starting program...")
     parser = argparse.ArgumentParser()
