@@ -553,7 +553,7 @@ if __name__ == "__main__":
                         help='track the gpu memory')
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
-    parser.add_argument('--profile', action='store_false', default=False,
+    parser.add_argument('--profile', action='store_false', default=True,
                         help='For profiling the training process')
 
     args = parser.parse_args()
