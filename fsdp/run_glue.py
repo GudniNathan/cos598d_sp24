@@ -630,7 +630,7 @@ if __name__ == "__main__":
     parser.add_argument('--save-model', action='store_false', default=False,
                         help='For Saving the current Model')
     parser.add_argument("--activation_checkpointing", action='store_true', default=True,)
-    parser.add_argument("--cpu_offload", action='store_true', default=False,)
+    parser.add_argument("--cpu_offload", action='store_true', default=True,)
     parser.add_argument("--profile", action='store_true', default=True,)
     args = parser.parse_args()
     args.eval_batch_size = args.per_gpu_eval_batch_size
