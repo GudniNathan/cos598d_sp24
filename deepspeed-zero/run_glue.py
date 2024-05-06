@@ -238,7 +238,7 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
             print(f"--> average time per epoch: {total_iteration_time / (epoch+1):.3f} seconds")
             print(f"--> average time per iteration: {total_iteration_time / global_step[0]} seconds")
 
-        if args.profile:
+        if args.profile and epoch < args.num_train_epochs - 1:
             prof.step()  # Advance the profiler to the next step
 
         ##################################################
@@ -246,6 +246,8 @@ def deepspeed_main(args, train_dataset, eval_dataset, model, tokenizer):
         # evaluate(args, fsdp_model, tokenizer)
         ##################################################
     if args.profile:
+        torch.distributed.barrier()
+        print("Stopping profiler...")
         prof.stop()
     torch.distributed.barrier()
 
@@ -366,7 +368,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
     return dataset
 
-@cpu_profile
+# @cpu_profile
 def main(args):
     args.local_rank = int(os.environ.get('LOCAL_RANK', args.local_rank))
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
